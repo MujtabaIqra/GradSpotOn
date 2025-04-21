@@ -13,6 +13,7 @@ type BookingDetails = {
   duration: number;
   zone: string;
   spot: string;
+  locationDescription?: string;
 };
 
 const ConfirmationPage = () => {
@@ -94,6 +95,11 @@ const ConfirmationPage = () => {
               <div>
                 <p className="font-medium">Location</p>
                 <p className="text-muted-foreground">Zone {bookingDetails.zone}, Spot {bookingDetails.spot}</p>
+                {bookingDetails.locationDescription && (
+                  <p className="text-xs mt-0.5 text-spoton-purple font-medium">
+                    {bookingDetails.locationDescription}
+                  </p>
+                )}
               </div>
             </div>
             

@@ -21,17 +21,50 @@ const parkingStats = {
   percentAvailable: 28
 };
 
+const zoneDescriptions: Record<string, string> = {
+  A: 'near building J2A',
+  B: 'near building J2B',
+  C: 'near building H1 (Main Hall)',
+  D: 'near building C1 (Cafeteria)'
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [parkingZone, setParkingZone] = useState('A');
   
   const zones = ['A', 'B', 'C', 'D'];
+
+  // Helper to determine which building each spot is close to
+  function getSpotLocation(zone: string, spotId: string): string {
+    // You can customize mapping here for more granular spot-to-building mapping if needed
+    return zoneDescriptions[zone] || "Unknown location";
+  }
   
   // Mock data for parking spots in current zone
   const parkingSpots = Array(24).fill(null).map((_, i) => ({
     id: `${parkingZone}-${i+1}`,
     status: Math.random() > 0.3 ? 'available' : Math.random() > 0.5 ? 'occupied' : 'reserved'
   }));
+
+  // Pick today's date and time for mock reservation
+  const todayISO = new Date().toISOString().split('T')[0];
+  const nowHour = String(new Date().getHours()).padStart(2, '0') + ':00';
+
+  function handleReserveSpot(spot: { id: string, status: string }) {
+    if (spot.status === 'available') {
+      navigate('/confirmation', {
+        state: {
+          // Quick mock fill
+          date: todayISO,
+          startTime: nowHour,
+          duration: 1,
+          zone: parkingZone,
+          spot: spot.id,
+          locationDescription: getSpotLocation(parkingZone, spot.id)
+        }
+      });
+    }
+  }
   
   return (
     <div className="min-h-screen pb-16">
@@ -101,12 +134,8 @@ const Dashboard = () => {
                         : spot.status === 'occupied' 
                           ? 'parking-spot-occupied' 
                           : 'parking-spot-reserved'
-                    }`}
-                    onClick={() => {
-                      if (spot.status === 'available') {
-                        navigate(`/reserve/${spot.id}`);
-                      }
-                    }}
+                    } cursor-pointer`}
+                    onClick={() => handleReserveSpot(spot)}
                   >
                     <div className="aspect-w-1 aspect-h-1 flex items-center justify-center p-2">
                       <span className="text-xs text-white font-medium">
