@@ -43,14 +43,14 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
         </div>
       )}
       
-      <div className="bg-muted p-4 rounded-md">
+      <div className="bg-gray-100 p-4 rounded-md shadow-md">
         {/* Building entrance */}
         <div className="mb-4 bg-blue-200 text-blue-800 py-2 text-center text-sm font-medium rounded-md">
           Building Entrance
         </div>
         
         {/* Parking grid */}
-        <div className="grid grid-cols-8 gap-1">
+        <div className="grid grid-cols-8 gap-2">
           {allSlots.map(slotNumber => {
             const status = getSlotStatus(slotNumber);
             return (
@@ -58,11 +58,11 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
                 key={slotNumber}
                 onClick={() => handleSlotClick(slotNumber)}
                 className={`
-                  aspect-square flex items-center justify-center rounded-md text-xs font-medium
-                  ${status === 'available' ? 'bg-green-500 text-white cursor-pointer hover:bg-green-600' : ''}
-                  ${status === 'occupied' ? 'bg-red-500 text-white cursor-not-allowed' : ''}
-                  ${status === 'selected' ? 'bg-spoton-purple text-white cursor-pointer ring-2 ring-offset-2 ring-spoton-purple' : ''}
-                  transition-all
+                  aspect-square flex items-center justify-center rounded-md text-sm font-medium border-2
+                  ${status === 'available' ? 'bg-green-500 text-white cursor-pointer hover:bg-green-600 border-green-600' : ''}
+                  ${status === 'occupied' ? 'bg-red-500 text-white cursor-not-allowed border-red-600' : ''}
+                  ${status === 'selected' ? 'bg-spoton-purple text-white cursor-pointer ring-2 ring-offset-2 ring-spoton-purple border-purple-600' : ''}
+                  transition-all shadow-sm
                 `}
               >
                 {slotNumber}
@@ -74,16 +74,16 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
         {/* Legend */}
         <div className="mt-4 flex justify-center gap-4 text-xs">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Available</span>
+            <div className="w-4 h-4 rounded-full bg-green-500 border border-green-600"></div>
+            <span className="font-medium">Available</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span>Occupied</span>
+            <div className="w-4 h-4 rounded-full bg-red-500 border border-red-600"></div>
+            <span className="font-medium">Occupied</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-spoton-purple"></div>
-            <span>Selected</span>
+            <div className="w-4 h-4 rounded-full bg-spoton-purple border border-purple-600"></div>
+            <span className="font-medium">Selected</span>
           </div>
         </div>
       </div>
