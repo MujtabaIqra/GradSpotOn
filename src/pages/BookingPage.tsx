@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -193,8 +192,18 @@ const BookingPage = () => {
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Select Building, Date & Time</CardTitle>
-            <CardDescription>Choose your building and an available slot</CardDescription>
+            <CardTitle>
+              Select Building, Date & Time
+            </CardTitle>
+            <CardDescription>
+              <span>Choose your building and an available slot.</span><br/>
+              <span className="text-xs font-semibold text-spoton-purple-darkest mt-2 block">
+                You are booking for: 
+                <span className="ml-1">
+                  {buildings.find((b) => b.value === building)?.label || building}
+                </span>
+              </span>
+            </CardDescription>
           </CardHeader>
           <form onSubmit={handleBooking}>
             <CardContent className="space-y-4">
