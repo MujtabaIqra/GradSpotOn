@@ -8,18 +8,20 @@ import { Label } from "@/components/ui/label";
 import AjmanLogo from '@/components/AjmanLogo';
 // Toast
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   
   const isAjmanStudentEmail = (email: string) => {
     return email.trim().toLowerCase().endsWith('@ajmanuni.ac.ae');
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAjmanStudentEmail(email)) {
       toast({
@@ -29,8 +31,30 @@ const LoginPage = () => {
       });
       return;
     }
-    // Mock login - replace with actual authentication logic
-    navigate('/dashboard');
+    
+    setLoading(true);
+    
+    // Real authentication with Supabase
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    setLoading(false);
+    
+    if (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login Successful",
+        description: "Welcome back to SpotOn!"
+      });
+      navigate('/dashboard');
+    }
   };
   
   return (
@@ -77,7 +101,10 @@ const LoginPage = () => {
                     className="text-xs text-spoton-purple hover:underline"
                     onClick={(e) => {
                       e.preventDefault();
-                      // Handle forgot password
+                      toast({
+                        title: "Password Reset",
+                        description: "Please contact university IT support to reset your password."
+                      });
                     }}
                   >
                     Forgot password?
@@ -96,8 +123,9 @@ const LoginPage = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-spoton-purple hover:bg-spoton-purple-dark"
+                disabled={loading}
               >
-                Sign In
+                {loading ? 'Signing In...' : 'Sign In'}
               </Button>
               <p className="text-center text-sm">
                 Don't have an account?{' '}
@@ -125,4 +153,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

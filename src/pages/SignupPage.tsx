@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import AjmanLogo from '@/components/AjmanLogo';
 // Toast
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ const SignupPage = () => {
     userType: 'student',
     studentId: ''
   });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -35,8 +36,10 @@ const SignupPage = () => {
     return email.trim().toLowerCase().endsWith('@ajmanuni.ac.ae');
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
     if (!isAjmanStudentEmail(formData.email)) {
       toast({
         title: "Invalid Email",
@@ -45,8 +48,61 @@ const SignupPage = () => {
       });
       return;
     }
-    // Mock signup - replace with actual registration logic
-    navigate('/dashboard');
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    // Real signup with Supabase - store user metadata
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.name,
+          user_type: formData.userType,
+          student_id: formData.studentId,
+        }
+      }
+    });
+    
+    setLoading(false);
+    
+    if (error) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "There was a problem creating your account.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. You can now sign in.",
+      });
+      // Navigate to dashboard if auto sign-in worked
+      if (data.user) {
+        navigate('/dashboard');
+      } else {
+        // Otherwise navigate to login
+        navigate('/login');
+      }
+    }
   };
 
   return (
@@ -154,8 +210,9 @@ const SignupPage = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-spoton-purple hover:bg-spoton-purple-dark"
+                disabled={loading}
               >
-                Create Account
+                {loading ? 'Creating Account...' : 'Create Account'}
               </Button>
               <p className="text-center text-sm">
                 Already have an account?{' '}
@@ -183,4 +240,3 @@ const SignupPage = () => {
 };
 
 export default SignupPage;
-

@@ -6,21 +6,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Building } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
-
-const buildings = [
-  { value: 'J2-A', label: 'J2-A (Main Engineering Bldg)' },
-  { value: 'J2-B', label: 'J2-B (Science Bldg)' },
-  { value: 'J2-C', label: 'J2-C (Library Bldg)' },
-];
+import ParkingMap from '@/components/ParkingMap';
 
 // Ensure our building type is correctly typed to match Supabase enum
 type BuildingCode = Database['public']['Enums']['building_code'];
 
+const buildings = [
+  { value: 'J2-A' as BuildingCode, label: 'J2-A (Law and Arts)' },
+  { value: 'J2-B' as BuildingCode, label: 'J2-B (Business Administration)' },
+  { value: 'J2-C' as BuildingCode, label: 'J2-C (IT Department)' },
+];
+
 const SLOTS_PER_BUILDING = 40;
+const MAX_DURATION_MINUTES = 90; // Maximum booking duration of 1 hour 30 minutes
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -37,10 +39,23 @@ const BookingPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data?.user?.id ?? null);
-    });
-  }, []);
+    // Get current user and redirect to login if not authenticated
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to book a parking slot.",
+          variant: "destructive"
+        });
+        navigate('/login');
+      } else {
+        setUserId(data.user.id);
+      }
+    };
+    
+    checkUser();
+  }, [navigate, toast]);
 
   // Fetch available slots for selected building/date/time
   useEffect(() => {
@@ -94,6 +109,7 @@ const BookingPage = () => {
         description: "You need to be logged in to book a parking slot.",
         variant: "destructive"
       });
+      navigate('/login');
       return;
     }
     if (!slot) {
@@ -104,6 +120,17 @@ const BookingPage = () => {
       });
       return;
     }
+    
+    // Check if duration exceeds maximum allowed
+    if (Number(duration) > MAX_DURATION_MINUTES) {
+      toast({
+        title: "Duration Exceeded",
+        description: `Maximum booking duration is ${MAX_DURATION_MINUTES/60} hours.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
     // Compose start timestamp
     const startTimestamp = new Date(`${date}T${startTime}:00`);
@@ -141,6 +168,19 @@ const BookingPage = () => {
     }
   };
 
+  // Handle slot selection from the map
+  const handleSlotSelect = (slotNumber: number) => {
+    if (availableSlots.includes(slotNumber)) {
+      setSlot(String(slotNumber));
+    } else {
+      toast({
+        title: "Slot Unavailable",
+        description: "This parking slot is already booked for the selected time.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen pb-16">
       <Header />
@@ -163,7 +203,10 @@ const BookingPage = () => {
                 <label htmlFor="building" className="block text-sm font-medium">
                   Building
                 </label>
-                <Select value={building} onValueChange={setBuilding}>
+                <Select 
+                  value={building} 
+                  onValueChange={(value: string) => setBuilding(value as BuildingCode)}
+                >
                   <SelectTrigger id="building" className="w-full">
                     <SelectValue placeholder="Choose building" />
                   </SelectTrigger>
@@ -214,47 +257,32 @@ const BookingPage = () => {
               {/* Duration */}
               <div className="space-y-2">
                 <label htmlFor="duration" className="block text-sm font-medium">
-                  Duration (minutes)
+                  Duration (maximum 1 hour 30 minutes)
                 </label>
                 <Select value={duration} onValueChange={setDuration}>
                   <SelectTrigger id="duration" className="w-full">
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[60, 120, 180, 240, 300, 360].map(val => (
-                      <SelectItem key={val} value={String(val)}>
-                        {val / 60} {val === 60 ? 'hour' : 'hours'}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="90">1 hour 30 minutes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Slot */}
-              <div className="space-y-2">
-                <label htmlFor="slot" className="block text-sm font-medium">
-                  Parking Slot
-                </label>
-                {loading ? (
-                  <div className="text-muted-foreground text-sm">Loading slots...</div>
-                ) : (
-                  <Select value={slot} onValueChange={setSlot} disabled={availableSlots.length === 0}>
-                    <SelectTrigger id="slot" className="w-full">
-                      <SelectValue placeholder="Available slots" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSlots.length === 0 ? (
-                        <SelectItem value="">No slots</SelectItem>
-                      ) : (
-                        availableSlots.map(num => (
-                          <SelectItem key={num} value={String(num)}>
-                            Slot #{num}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
+              {/* Parking Map */}
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">Parking Map - Click to Select a Slot</h3>
+                </div>
+                <ParkingMap 
+                  availableSlots={availableSlots} 
+                  selectedSlot={slot ? parseInt(slot) : undefined}
+                  onSlotSelect={handleSlotSelect}
+                  loading={loading}
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -277,7 +305,7 @@ const BookingPage = () => {
             <p><strong>Hours:</strong> 7:00 AM - 10:00 PM</p>
             <p><strong>Rates:</strong> Free for students and staff with valid ID</p>
             <p><strong>Slots per building:</strong> 40</p>
-            <p><strong>Time Limit:</strong> Maximum 6 hours per booking</p>
+            <p><strong>Time Limit:</strong> Maximum 1 hour 30 minutes per booking</p>
             <p className="text-muted-foreground mt-2">
               Spots can be reserved up to 7 days in advance. Cancellations must be made at least 1 hour before the reservation time.
             </p>
