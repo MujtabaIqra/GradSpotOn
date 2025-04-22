@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AjmanLogo from '@/components/AjmanLogo';
+// Toast
+import { useToast } from "@/hooks/use-toast";
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,22 +21,34 @@ const SignupPage = () => {
     userType: 'student',
     studentId: ''
   });
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
-  
+
   const handleUserTypeChange = (value: string) => {
     setFormData(prev => ({ ...prev, userType: value }));
   };
-  
+
+  const isAjmanStudentEmail = (email: string) => {
+    return email.trim().toLowerCase().endsWith('@ajmanuni.ac.ae');
+  };
+
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAjmanStudentEmail(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Only students with @ajmanuni.ac.ae email addresses can sign up.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Mock signup - replace with actual registration logic
     navigate('/dashboard');
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col p-4">
       <div 
@@ -75,7 +90,7 @@ const SignupPage = () => {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="your.email@ajman.ac.ae"
+                  placeholder="your.email@ajmanuni.ac.ae"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -168,3 +183,4 @@ const SignupPage = () => {
 };
 
 export default SignupPage;
+

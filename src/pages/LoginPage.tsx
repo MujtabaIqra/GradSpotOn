@@ -6,14 +6,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AjmanLogo from '@/components/AjmanLogo';
+// Toast
+import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
+  const isAjmanStudentEmail = (email: string) => {
+    return email.trim().toLowerCase().endsWith('@ajmanuni.ac.ae');
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAjmanStudentEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Only students with @ajmanuni.ac.ae email addresses can sign in.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Mock login - replace with actual authentication logic
     navigate('/dashboard');
   };
@@ -48,7 +63,7 @@ const LoginPage = () => {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="your.email@ajman.ac.ae"
+                  placeholder="your.email@ajmanuni.ac.ae"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -110,3 +125,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
