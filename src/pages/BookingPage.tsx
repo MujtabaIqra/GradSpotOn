@@ -9,12 +9,16 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { Calendar, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
 const buildings = [
   { value: 'J2-A', label: 'J2-A (Main Engineering Bldg)' },
   { value: 'J2-B', label: 'J2-B (Science Bldg)' },
   { value: 'J2-C', label: 'J2-C (Library Bldg)' },
 ];
+
+// Ensure our building type is correctly typed to match Supabase enum
+type BuildingCode = Database['public']['Enums']['building_code'];
 
 const SLOTS_PER_BUILDING = 40;
 
@@ -24,7 +28,7 @@ const BookingPage = () => {
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState<string>('09:00');
   const [duration, setDuration] = useState<string>('60'); // duration in minutes
-  const [building, setBuilding] = useState<string>('J2-A');
+  const [building, setBuilding] = useState<BuildingCode>('J2-A');
   const [slot, setSlot] = useState<string>('1');
   const [availableSlots, setAvailableSlots] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,12 +107,12 @@ const BookingPage = () => {
     setLoading(true);
     // Compose start timestamp
     const startTimestamp = new Date(`${date}T${startTime}:00`);
-    // Insert booking to Supabase
+    // Insert booking to Supabase - fix the structure to match what's expected
     const { error } = await supabase.from('bookings').insert({
       user_id: userId,
-      building,
+      building: building,
       slot: Number(slot),
-      start_time: startTimestamp,
+      start_time: startTimestamp.toISOString(),
       duration_minutes: Number(duration)
     });
 
@@ -130,8 +134,8 @@ const BookingPage = () => {
           date,
           startTime,
           duration: Number(duration) / 60, // hours for display
-          building,
-          slot,
+          zone: building,
+          spot: slot,
         }
       });
     }
@@ -287,4 +291,3 @@ const BookingPage = () => {
 };
 
 export default BookingPage;
-
