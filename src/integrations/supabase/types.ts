@@ -9,7 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          building: Database["public"]["Enums"]["building_code"]
+          created_at: string
+          duration_minutes: number
+          id: string
+          slot: number
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          building: Database["public"]["Enums"]["building_code"]
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          slot: number
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          building?: Database["public"]["Enums"]["building_code"]
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          slot?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +50,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      building_code: "J2-A" | "J2-B" | "J2-C"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +165,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      building_code: ["J2-A", "J2-B", "J2-C"],
+    },
   },
 } as const
