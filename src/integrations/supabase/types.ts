@@ -42,6 +42,27 @@ export type Database = {
         }
         Relationships: []
       }
+      Users: {
+        Row: {
+          id: number
+          Name: string
+          Password: string
+          Student_ID: number
+        }
+        Insert: {
+          id?: number
+          Name: string
+          Password: string
+          Student_ID: number
+        }
+        Update: {
+          id?: number
+          Name?: string
+          Password?: string
+          Student_ID?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
