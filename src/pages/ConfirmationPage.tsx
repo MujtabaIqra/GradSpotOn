@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -17,40 +16,64 @@ type BookingDetails = {
 };
 
 const ConfirmationPage = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
-  const [qrCode, setQrCode] = useState<string>('');
-  
-  useEffect(() => {
-    if (location.state) {
-      setBookingDetails(location.state as BookingDetails);
-      // Mock QR code generation
-      setQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SPOTON-${Date.now()}`);
-    } else {
-      navigate('/book');
-    }
-  }, [location, navigate]);
-  
+  const navigate = useNavigate();
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [progress, setProgress] = useState(100);
+
+  const bookingDetails = location.state as BookingDetails;
   if (!bookingDetails) {
-    return <div className="p-4">Loading...</div>;
+    navigate('/book');
+    return null;
   }
-  
+
+  // Calculate end time
+  const startTime = new Date(`${bookingDetails.date}T${bookingDetails.startTime}`);
+  const endTime = new Date(startTime.getTime() + bookingDetails.duration * 60 * 60 * 1000);
+  const formattedEndTime = endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  // Mock QR code for now
+  const qrCode = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SPOTON-CONFIRMED';
+
+  // Timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const end = new Date(endTime);
+      const diff = end.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        clearInterval(timer);
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        setProgress(0);
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft({ hours, minutes, seconds });
+
+      // Update progress
+      const totalDuration = bookingDetails.duration * 60 * 60; // duration in seconds
+      const remainingSeconds = hours * 3600 + minutes * 60 + seconds;
+      const newProgress = (remainingSeconds / totalDuration) * 100;
+      setProgress(newProgress);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [endTime, bookingDetails.duration]);
+
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
-  
-  const calculateEndTime = (startTime: string, durationHours: number) => {
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const endDate = new Date();
-    endDate.setHours(hours, minutes, 0);
-    endDate.setTime(endDate.getTime() + durationHours * 60 * 60 * 1000);
-    return `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+
+  const formatTime = (time: { hours: number, minutes: number, seconds: number }) => {
+    return `${time.hours.toString().padStart(2, '0')}:${time.minutes.toString().padStart(2, '0')}:${time.seconds.toString().padStart(2, '0')}`;
   };
-  
-  const endTime = calculateEndTime(bookingDetails.startTime, bookingDetails.duration);
-  
+
   return (
     <div className="min-h-screen pb-16">
       <Header />
@@ -62,13 +85,16 @@ const ConfirmationPage = () => {
         </div>
         
         <Card className="mb-6 overflow-hidden">
-          <div className="bg-gradient-to-r from-spoton-purple to-spoton-blue p-4 text-white">
-            <h2 className="text-lg font-semibold">Ajman University</h2>
-            <p className="text-sm opacity-90">Parking Reservation</p>
+          <div className="relative h-2 w-full bg-muted">
+            <div 
+              className={`absolute inset-y-0 left-0 transition-all duration-1000 ease-linear ${progress < 20 ? 'bg-red-500' : 'bg-spoton-purple'}`} 
+              style={{ width: `${progress}%` }} 
+            ></div>
           </div>
           
-          <CardHeader>
-            <CardTitle>Booking Details</CardTitle>
+          <CardHeader className="text-center">
+            <div className="text-3xl font-mono font-semibold">{formatTime(timeLeft)}</div>
+            <p className="text-sm text-muted-foreground">Time remaining</p>
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -85,7 +111,7 @@ const ConfirmationPage = () => {
               <div>
                 <p className="font-medium">Time</p>
                 <p className="text-muted-foreground">
-                  {bookingDetails.startTime} - {endTime} ({bookingDetails.duration} {bookingDetails.duration === 1 ? 'hour' : 'hours'})
+                  {bookingDetails.startTime} - {formattedEndTime} ({bookingDetails.duration} {bookingDetails.duration === 1 ? 'hour' : 'hours'})
                 </p>
               </div>
             </div>
@@ -121,7 +147,7 @@ const ConfirmationPage = () => {
               className="w-full bg-spoton-purple hover:bg-spoton-purple-dark"
               onClick={() => navigate('/active')}
             >
-              View Active Bookings
+              View Active Booking
             </Button>
             
             <Button 
