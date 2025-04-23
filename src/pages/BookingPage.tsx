@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,8 +37,59 @@ const BookingPage = () => {
   // Get logged in user
   const [userId, setUserId] = useState<string | null>(null);
 
+  // To store the channel instance so we can unsubscribe on cleanup
+  const realtimeChannel = useRef<any>(null);
+
+  // Helper to update slots based on bookings data & desired time window
+  const getAvailableSlots = (
+    bookings: { slot: number; start_time: string; duration_minutes: number }[],
+    targetDate: string,
+    targetTime: string,
+    periodMinutes: number
+  ) => {
+    // Calculate timestamp for the query
+    const selectedDateTime = new Date(`${targetDate}T${targetTime}`);
+    let bookedSlots: Set<number> = new Set();
+    // Mark slots as booked if there's any time overlap
+    for (let bk of bookings) {
+      const startDt = new Date(bk.start_time);
+      const endDt = new Date(startDt.getTime() + bk.duration_minutes * 60000);
+      const reqDt = new Date(selectedDateTime);
+      const reqEndDt = new Date(reqDt.getTime() + Number(periodMinutes) * 60000);
+      // Check overlap
+      if (
+        (reqDt < endDt) && (startDt < reqEndDt)
+      ) {
+        bookedSlots.add(bk.slot);
+      }
+    }
+    const slots: number[] = [];
+    for (let s = 1; s <= SLOTS_PER_BUILDING; ++s) {
+      if (!bookedSlots.has(s)) slots.push(s);
+    }
+    return slots;
+  };
+
+  // Fetch available slots for selected building/date/time
+  const fetchAvailable = async () => {
+    setLoading(true);
+    const selectedDateTime = new Date(`${date}T${startTime}`);
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('slot, start_time, duration_minutes')
+      .eq('building', building);
+
+    let slots: number[] = [];
+    if (!error && bookings) {
+      slots = getAvailableSlots(bookings, date, startTime, Number(duration));
+    }
+    setAvailableSlots(slots);
+    setSlot(slots.length > 0 ? String(slots[0]) : '');
+    setLoading(false);
+  };
+
+  // Get user on mount
   useEffect(() => {
-    // Get current user and redirect to login if not authenticated
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
       if (!data?.user) {
@@ -52,51 +103,46 @@ const BookingPage = () => {
         setUserId(data.user.id);
       }
     };
-    
     checkUser();
   }, [navigate, toast]);
 
-  // Fetch available slots for selected building/date/time
+  // Setup real-time channel and listen for booking changes
   useEffect(() => {
-    const fetchAvailable = async () => {
-      setLoading(true);
-      // Calculate timestamp for the query
-      const selectedDateTime = new Date(`${date}T${startTime}`);
-      // Fetch bookings that overlap with this slot start
-      const { data: bookings, error } = await supabase
-        .from('bookings')
-        .select('slot, start_time, duration_minutes')
-        .eq('building', building)
-        .then(({ data, error }) => {
-          if (error) return { data: [], error };
-          return { data, error: null };
-        });
-        
-      let bookedSlots: Set<number> = new Set();
-      if (bookings && bookings.length > 0) {
-        // Mark slots as booked if there's any time overlap
-        for (let bk of bookings) {
-          const startDt = new Date(bk.start_time);
-          const endDt = new Date(startDt.getTime() + bk.duration_minutes * 60000);
-          const reqDt = new Date(selectedDateTime);
-          const reqEndDt = new Date(reqDt.getTime() + Number(duration) * 60000);
-          // Check overlap
-          if (
-            (reqDt < endDt) && (startDt < reqEndDt)
-          ) {
-            bookedSlots.add(bk.slot);
-          }
+    fetchAvailable(); // Initial fetch
+
+    // Clean up previous channel
+    if (realtimeChannel.current) {
+      supabase.removeChannel(realtimeChannel.current);
+      realtimeChannel.current = null;
+    }
+
+    // Setup new channel for bookings on this building
+    const channel = supabase
+      .channel(`realtime:bookings:${building}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // all ops
+          schema: 'public',
+          table: 'bookings',
+          filter: `building=eq.${building}`
+        },
+        (payload) => {
+          // Every change triggers the slot reload for this building
+          fetchAvailable();
         }
+      )
+      .subscribe();
+
+    realtimeChannel.current = channel;
+
+    // Cleanup on unmount or dependency change
+    return () => {
+      if (realtimeChannel.current) {
+        supabase.removeChannel(realtimeChannel.current);
+        realtimeChannel.current = null;
       }
-      const slots = [];
-      for (let s = 1; s <= SLOTS_PER_BUILDING; ++s) {
-        if (!bookedSlots.has(s)) slots.push(s);
-      }
-      setAvailableSlots(slots);
-      setSlot(slots.length > 0 ? String(slots[0]) : '');
-      setLoading(false);
     };
-    fetchAvailable();
     // eslint-disable-next-line
   }, [building, date, startTime, duration]);
 
