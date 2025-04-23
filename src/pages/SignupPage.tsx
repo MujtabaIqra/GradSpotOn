@@ -1,115 +1,27 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AjmanLogo from '@/components/AjmanLogo';
-// Toast
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { useSignup } from "@/hooks/useSignup";
 
 const SignupPage = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    userType: 'student',
-    studentId: ''
-  });
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
-  };
-
-  const handleUserTypeChange = (value: string) => {
-    setFormData(prev => ({ ...prev, userType: value }));
-  };
-
-  const isAjmanStudentEmail = (email: string) => {
-    return email.trim().toLowerCase().endsWith('@ajmanuni.ac.ae');
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!isAjmanStudentEmail(formData.email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Only students with @ajmanuni.ac.ae email addresses can sign up.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (formData.password.length < 6) {
-      toast({
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setLoading(true);
-    
-    // Real signup with Supabase - store user metadata
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          full_name: formData.name,
-          user_type: formData.userType,
-          student_id: formData.studentId,
-        }
-      }
-    });
-    
-    setLoading(false);
-    
-    if (error) {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "There was a problem creating your account.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created. You can now sign in.",
-      });
-      // Navigate to dashboard if auto sign-in worked
-      if (data.user) {
-        navigate('/dashboard');
-      } else {
-        // Otherwise navigate to login
-        navigate('/login');
-      }
-    }
-  };
+  const {
+    formData,
+    loading,
+    handleChange,
+    handleUserTypeChange,
+    handleSignup,
+  } = useSignup();
 
   return (
     <div className="min-h-screen flex flex-col p-4">
       <div 
         className="flex items-center gap-2 mb-8 cursor-pointer" 
-        onClick={() => navigate('/')}
+        onClick={() => window.location.assign('/')}
       >
         <div className="w-10 h-10">
           <AjmanLogo />
@@ -221,7 +133,7 @@ const SignupPage = () => {
                   className="text-spoton-purple hover:underline"
                   onClick={(e) => {
                     e.preventDefault();
-                    navigate('/login');
+                    window.location.assign('/login');
                   }}
                 >
                   Sign in
