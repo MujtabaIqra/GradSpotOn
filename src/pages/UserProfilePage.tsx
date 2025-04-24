@@ -1,16 +1,16 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, Car, CreditCard, LogOut, Settings, User } from 'lucide-react';
+import { Calendar, CreditCard, LogOut, Settings, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { VehicleInfo } from '@/components/VehicleInfo';
 
 const UserProfilePage = () => {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ const UserProfilePage = () => {
         
         setUser(session.user);
         
-        // Fetch profile data from profiles table using maybeSingle instead of single
+        // Fetch profile data from profiles table
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -65,8 +65,7 @@ const UserProfilePage = () => {
         if (profileData) {
           setProfile(profileData);
         } else {
-          console.log("No profile found for user", session.user.id);
-          // Create a temporary profile with email details
+          console.log("No profile found for user");
           const emailName = session.user.email?.split('@')[0] || '';
           const nameParts = emailName.split('.');
           const formattedName = nameParts
@@ -74,7 +73,7 @@ const UserProfilePage = () => {
             .join(' ');
           
           setProfile({
-            full_name: formattedName || session.user.email?.split('@')[0] || 'User',
+            full_name: formattedName,
             user_type: 'Student',
             student_id: null
           });
@@ -113,20 +112,6 @@ const UserProfilePage = () => {
         description: "Failed to sign out. Please try again."
       });
     }
-  };
-  
-  // Default vehicle info if not available from database
-  const defaultVehicle = {
-    make: 'Toyota',
-    model: 'Corolla',
-    plate: 'AJM 45921',
-    color: 'White'
-  };
-  
-  // Default bookings info if not available from database
-  const defaultBookings = {
-    total: 0,
-    thisMonth: 0
   };
   
   if (loading) {
@@ -185,50 +170,24 @@ const UserProfilePage = () => {
               <span className="text-muted-foreground">Account Type</span>
               <span>{profile?.user_type || 'Student'}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Bookings</span>
-              <span>{defaultBookings.total}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Bookings This Month</span>
-              <span>{defaultBookings.thisMonth}</span>
-            </div>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" size="sm" className="w-full">Edit Profile</Button>
-          </CardFooter>
         </Card>
         
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Car className="h-5 w-5" />
-              Vehicle Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Vehicle</span>
-              <span>{defaultVehicle.make} {defaultVehicle.model}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">License Plate</span>
-              <span>{defaultVehicle.plate}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Color</span>
-              <span>{defaultVehicle.color}</span>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" size="sm" className="w-full">Edit Vehicle</Button>
-          </CardFooter>
-        </Card>
+        <VehicleInfo />
         
         <div className="space-y-2">
           <Button 
             variant="outline" 
             className="w-full justify-start text-left" 
+            onClick={() => navigate('/services')}
+          >
+            <CreditCard className="h-5 w-5 mr-2" />
+            Additional Services
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-start text-left"
             onClick={() => navigate('/book')}
           >
             <Calendar className="h-5 w-5 mr-2" />
@@ -242,11 +201,6 @@ const UserProfilePage = () => {
           >
             <Calendar className="h-5 w-5 mr-2" />
             Booking History
-          </Button>
-          
-          <Button variant="outline" className="w-full justify-start text-left">
-            <CreditCard className="h-5 w-5 mr-2" />
-            Payment Methods
           </Button>
           
           <Button variant="outline" className="w-full justify-start text-left">

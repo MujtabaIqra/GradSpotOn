@@ -69,6 +69,90 @@ export type Database = {
         }
         Relationships: []
       }
+      service_orders: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          payment_status: string
+          price: number
+          scheduled_for: string | null
+          service_id: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_status?: string
+          price: number
+          scheduled_for?: string | null
+          service_id?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_status?: string
+          price?: number
+          scheduled_for?: string | null
+          service_id?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          name: string
+          price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          name: string
+          price: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       Users: {
         Row: {
           id: number
@@ -87,6 +171,39 @@ export type Database = {
           Name?: string
           Password?: string
           Student_ID?: number
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          make: string
+          model: string
+          plate: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          make: string
+          model: string
+          plate: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          make?: string
+          model?: string
+          plate?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
