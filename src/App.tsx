@@ -13,6 +13,7 @@ import BookingHistoryPage from "./pages/BookingHistoryPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import ServicesPage from "./pages/ServicesPage";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/services" element={<ServicesPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>

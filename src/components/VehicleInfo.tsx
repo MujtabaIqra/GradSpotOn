@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
+  DialogDescription, 
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -26,6 +27,7 @@ export function VehicleInfo() {
   const { toast } = useToast();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     make: '',
     model: '',
@@ -38,8 +40,12 @@ export function VehicleInfo() {
   }, []);
 
   const fetchVehicle = async () => {
+    setIsLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setIsLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('vehicles')
@@ -49,45 +55,82 @@ export function VehicleInfo() {
 
     if (error) {
       console.error("Error fetching vehicle:", error);
+      setIsLoading(false);
       return;
     }
 
     if (data) {
       setVehicle(data);
-      setFormData(data);
+      setFormData({
+        make: data.make,
+        model: data.model,
+        plate: data.plate,
+        color: data.color
+      });
     }
+    
+    setIsLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    setIsLoading(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please log in to update your vehicle information."
+        });
+        return;
+      }
 
-    const { error } = vehicle 
-      ? await supabase
+      if (vehicle) {
+        // Update existing vehicle
+        const { error } = await supabase
           .from('vehicles')
           .update(formData)
-          .eq('id', vehicle.id)
-      : await supabase
+          .eq('id', vehicle.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Vehicle information updated successfully."
+        });
+      } else {
+        // Create new vehicle
+        const { error } = await supabase
           .from('vehicles')
           .insert([{ ...formData, user_id: session.user.id }]);
 
-    if (error) {
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Vehicle information saved successfully."
+        });
+      }
+      
+      setIsEditing(false);
+      fetchVehicle();
+    } catch (error) {
+      console.error("Error saving vehicle:", error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to save vehicle information."
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    toast({
-      title: "Success",
-      description: "Vehicle information saved successfully."
-    });
-    
-    setIsEditing(false);
-    fetchVehicle();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -99,7 +142,9 @@ export function VehicleInfo() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        {vehicle ? (
+        {isLoading ? (
+          <p className="text-muted-foreground">Loading vehicle information...</p>
+        ) : vehicle ? (
           <>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Vehicle</span>
@@ -128,41 +173,63 @@ export function VehicleInfo() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
+              <DialogDescription>
+                {vehicle ? 'Update your vehicle details below.' : 'Add your vehicle details to access parking and additional services.'}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Make</label>
+                <label htmlFor="make" className="text-sm font-medium">Make</label>
                 <Input
+                  id="make"
+                  name="make"
                   value={formData.make}
-                  onChange={(e) => setFormData(prev => ({ ...prev, make: e.target.value }))}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Toyota"
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Model</label>
+                <label htmlFor="model" className="text-sm font-medium">Model</label>
                 <Input
+                  id="model"
+                  name="model"
                   value={formData.model}
-                  onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Corolla"
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">License Plate</label>
+                <label htmlFor="plate" className="text-sm font-medium">License Plate</label>
                 <Input
+                  id="plate"
+                  name="plate"
                   value={formData.plate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, plate: e.target.value }))}
+                  onChange={handleInputChange}
+                  placeholder="e.g., ABC1234"
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Color</label>
+                <label htmlFor="color" className="text-sm font-medium">Color</label>
                 <Input
+                  id="color"
+                  name="color"
                   value={formData.color}
-                  onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                  onChange={handleInputChange}
+                  placeholder="e.g., White"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">Save Vehicle</Button>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Saving..." : "Save Vehicle"}
+                </Button>
+              </div>
             </form>
           </DialogContent>
         </Dialog>
