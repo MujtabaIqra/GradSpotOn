@@ -46,12 +46,12 @@ const UserProfilePage = () => {
         
         setUser(session.user);
         
-        // Fetch profile data from profiles table
+        // Fetch profile data from profiles table using maybeSingle instead of single
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (profileError) {
           console.error("Error fetching profile:", profileError);
@@ -64,6 +64,20 @@ const UserProfilePage = () => {
         
         if (profileData) {
           setProfile(profileData);
+        } else {
+          console.log("No profile found for user", session.user.id);
+          // Create a temporary profile with email details
+          const emailName = session.user.email?.split('@')[0] || '';
+          const nameParts = emailName.split('.');
+          const formattedName = nameParts
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+          
+          setProfile({
+            full_name: formattedName || session.user.email?.split('@')[0] || 'User',
+            user_type: 'Student',
+            student_id: null
+          });
         }
       } catch (error) {
         console.error("Unexpected error:", error);
