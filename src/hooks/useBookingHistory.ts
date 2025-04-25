@@ -16,8 +16,8 @@ export interface Booking {
   fine?: number;
 }
 
-// Define the interface for the database booking
-interface DatabaseBooking extends Database['public']['Tables']['bookings']['Row'] {
+// Define the type for database booking with additional fields
+type DatabaseBooking = Database['public']['Tables']['bookings']['Row'] & {
   status?: string; // Add the status field as optional
   fine?: number;   // Add the fine field as optional
 }
@@ -52,7 +52,7 @@ export function useBookingHistory() {
         if (error) throw error;
         
         const formattedBookings: Booking[] = bookingsData.map(booking => {
-          // Cast the database booking to our extended interface
+          // Cast the database booking to our extended type
           const dbBooking = booking as DatabaseBooking;
           return {
             id: dbBooking.id,

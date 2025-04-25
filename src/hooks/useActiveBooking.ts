@@ -18,9 +18,10 @@ interface Booking {
   duration_minutes: number;
 }
 
-// Define the interface for the database booking to help with type checking
-interface DatabaseBooking extends Database['public']['Tables']['bookings']['Row'] {
+// Define the type for bookings from database with additional fields
+type DatabaseBooking = Database['public']['Tables']['bookings']['Row'] & {
   status?: string; // Add the status field as optional since it's not in the database schema
+  fine?: number;   // Add the fine field as optional
 }
 
 export function useActiveBooking() {
@@ -60,7 +61,7 @@ export function useActiveBooking() {
           return;
         }
 
-        // Cast the database booking to our extended interface that includes status
+        // Cast the database booking to our extended type that includes status
         const activeBooking = bookings[0] as DatabaseBooking;
         const formattedBooking = {
           id: activeBooking.id,
@@ -160,10 +161,9 @@ export function useActiveBooking() {
 
     try {
       // Update booking with status field
-      const updateData = { status: 'completed' } as Partial<DatabaseBooking>;
       const { error } = await supabase
         .from('bookings')
-        .update(updateData)
+        .update({ status: 'completed' } as any)
         .eq('id', booking.id);
 
       if (error) throw error;
