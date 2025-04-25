@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,150 +8,18 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { Calendar, Clock, MapPin, Search, Filter } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/components/ui/use-toast";
-
-interface Booking {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  zone: string;
-  spot: string;
-  status: string;
-  fine?: number;
-}
+import { useBookingHistory } from '@/hooks/useBookingHistory';
 
 const BookingHistoryPage = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
-  
-  // Fetch booking history
-  useEffect(() => {
-    const fetchBookingHistory = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          navigate('/login');
-          return;
-        }
-        
-        // In a real app, fetch the actual booking data from Supabase
-        // This is mock data for demonstration
-        const mockBookingsData = [
-          {
-            id: 'SPT-87654321',
-            date: '2025-04-20',
-            startTime: '10:00',
-            endTime: '12:00',
-            zone: 'A',
-            spot: 'A-15',
-            status: 'completed'
-          },
-          {
-            id: 'SPT-76543210',
-            date: '2025-04-18',
-            startTime: '14:30',
-            endTime: '16:30',
-            zone: 'C',
-            spot: 'C-07',
-            status: 'completed'
-          },
-          {
-            id: 'SPT-65432109',
-            date: '2025-04-15',
-            startTime: '09:00',
-            endTime: '10:00',
-            zone: 'B',
-            spot: 'B-22',
-            status: 'canceled'
-          },
-          {
-            id: 'SPT-54321098',
-            date: '2025-04-10',
-            startTime: '13:00',
-            endTime: '15:00',
-            zone: 'D',
-            spot: 'D-04',
-            status: 'completed',
-            fine: 10
-          }
-        ];
-        
-        setBookings(mockBookingsData);
-        setFilteredBookings(mockBookingsData);
-      } catch (error) {
-        console.error("Error fetching booking history:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not load your booking history."
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchBookingHistory();
-    
-    // Set up realtime listener for booking updates
-    // In a real app, we would listen to Supabase changes
-    const channel = supabase
-      .channel('public:bookings')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'bookings' 
-        }, 
-        (payload) => {
-          console.log('Booking update received:', payload);
-          // In a real implementation, we would update the bookings state based on the payload
-          toast({
-            title: "Booking Updated",
-            description: "Your booking history has been updated.",
-            duration: 3000,
-          });
-          // fetchBookingHistory(); // Re-fetch data on update
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [navigate, toast]);
-  
-  // Apply filters and search
-  useEffect(() => {
-    let result = [...bookings];
-    
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(booking => booking.status === statusFilter);
-    }
-    
-    // Apply search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        booking =>
-          booking.id.toLowerCase().includes(query) ||
-          booking.zone.toLowerCase().includes(query) ||
-          booking.spot.toLowerCase().includes(query) ||
-          booking.date.includes(query)
-      );
-    }
-    
-    setFilteredBookings(result);
-  }, [bookings, statusFilter, searchQuery]);
+  const {
+    bookings: filteredBookings,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter
+  } = useBookingHistory();
   
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -159,11 +27,8 @@ const BookingHistoryPage = () => {
   };
   
   const handleViewDetails = (bookingId: string) => {
-    // In a real app, navigate to booking detail page
-    toast({
-      title: "Booking Details",
-      description: `Viewing details for booking ${bookingId}`,
-    });
+    // Future implementation of booking details
+    console.log('Viewing details for booking:', bookingId);
   };
   
   return (
