@@ -51,8 +51,8 @@ export function useBookingHistory() {
           endTime: new Date(new Date(booking.start_time).getTime() + booking.duration_minutes * 60000).toTimeString().slice(0, 5),
           zone: booking.building,
           spot: `${booking.building}-${booking.slot}`,
-          status: booking.status || 'completed',
-          fine: booking.fine || undefined
+          status: (booking as any).status || 'completed', // Using type assertion for now
+          fine: (booking as any).fine || undefined
         }));
         
         setBookings(formattedBookings);

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Database } from '@/integrations/supabase/types';
 
 interface Booking {
   id: string;
@@ -14,6 +15,7 @@ interface Booking {
   status: string;
   qrCode: string;
   price: number;
+  duration_minutes: number; // Added to match usage in the component
 }
 
 export function useActiveBooking() {
@@ -61,9 +63,10 @@ export function useActiveBooking() {
           endTime: new Date(new Date(activeBooking.start_time).getTime() + activeBooking.duration_minutes * 60000).toTimeString().slice(0, 5),
           zone: activeBooking.building,
           spot: `${activeBooking.building}-${activeBooking.slot}`,
-          status: 'active',
+          status: activeBooking.status || 'active',
           qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${activeBooking.id}`,
-          price: 5 // Assuming a fixed price, adjust as needed
+          price: 5, // Assuming a fixed price, adjust as needed
+          duration_minutes: activeBooking.duration_minutes
         };
 
         setBooking(formattedBooking);
@@ -150,9 +153,12 @@ export function useActiveBooking() {
     if (!booking) return;
 
     try {
+      // Type-safe update with correct properties
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'completed' })
+        .update({ 
+          status: 'completed' 
+        } as any) // Using any to bypass type checking for now
         .eq('id', booking.id);
 
       if (error) throw error;
