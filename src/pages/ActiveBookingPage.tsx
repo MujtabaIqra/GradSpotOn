@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -15,7 +14,8 @@ const ActiveBookingPage = () => {
     isPastEndTime,
     qrScanned,
     fine,
-    handleScanQr
+    handleScanQr,
+    handleEndSessionEarly
   } = useActiveBooking();
 
   const formatDate = (dateString: string) => {
@@ -56,8 +56,39 @@ const ActiveBookingPage = () => {
           </div>
           
           <CardHeader className="text-center">
-            <div className="text-3xl font-mono font-semibold">{formatTime(timeLeft)}</div>
+            <div className={`text-5xl font-mono font-bold ${
+              timeLeft.hours === 0 && timeLeft.minutes < 5 ? 'text-red-500 animate-pulse' : 
+              timeLeft.hours === 0 && timeLeft.minutes < 15 ? 'text-amber-500' : 
+              'text-spoton-purple'
+            }`}>
+              {formatTime(timeLeft)}
+            </div>
             <p className="text-sm text-muted-foreground">Time remaining</p>
+            {timeLeft.hours === 0 && timeLeft.minutes < 5 && (
+              <div className="mt-2 bg-red-50 text-red-700 p-2 rounded-md animate-bounce">
+                <p className="font-medium">⚠️ Parking session ending in {timeLeft.minutes} minutes!</p>
+                <p className="text-sm">Please proceed to your vehicle immediately</p>
+              </div>
+            )}
+            {timeLeft.hours === 0 && timeLeft.minutes >= 5 && timeLeft.minutes < 15 && (
+              <div className="mt-2 bg-amber-50 text-amber-700 p-2 rounded-md">
+                <p className="font-medium">⚠️ Parking session ending soon</p>
+                <p className="text-sm">Please prepare to leave your parking spot</p>
+              </div>
+            )}
+            <div className="mt-2 text-sm">
+              <p className="font-medium">Current Date & Time</p>
+              <p className="text-muted-foreground">{new Date().toLocaleString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              })}</p>
+            </div>
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -136,7 +167,7 @@ const ActiveBookingPage = () => {
             <Button 
               variant="outline"
               className="w-full text-destructive border-destructive hover:bg-destructive/10"
-              onClick={() => window.location.assign('/book')}
+              onClick={handleEndSessionEarly}
             >
               End Session Early
             </Button>

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +15,7 @@ import SignupPage from "./pages/SignupPage";
 import ServicesPage from "./pages/ServicesPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRoute from "./components/admin/AdminRoute";
+import CheckProfile from "./pages/CheckProfile";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 
 const queryClient = new QueryClient();
@@ -37,6 +37,7 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/services" element={<ServicesPage />} />
+          <Route path="/check-profile" element={<CheckProfile />} />
           
           {/* Admin Routes */}
           <Route element={<AdminRoute />}>

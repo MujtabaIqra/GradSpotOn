@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, User, Shield } from "lucide-react";
@@ -17,15 +16,11 @@ const Header = () => {
         
         if (!session) return;
         
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', session.user.id)
-          .maybeSingle();
-          
-        if (error) throw error;
+        // Check if email matches admin pattern (starts with a.)
+        const isAdminEmail = session.user.email?.startsWith('a.') && 
+                           session.user.email?.endsWith('@ajmanuni.ac.ae');
         
-        setIsAdmin(profile?.user_type === 'Admin');
+        setIsAdmin(!!isAdminEmail);
       } catch (error) {
         console.error('Error checking admin status:', error);
       }

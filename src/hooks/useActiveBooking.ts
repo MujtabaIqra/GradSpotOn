@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -70,9 +69,9 @@ export function useActiveBooking() {
           endTime: new Date(new Date(activeBooking.start_time).getTime() + activeBooking.duration_minutes * 60000).toTimeString().slice(0, 5),
           zone: activeBooking.building,
           spot: `${activeBooking.building}-${activeBooking.slot}`,
-          status: activeBooking.status || 'active', // Use status if exists, otherwise default to 'active'
+          status: activeBooking.status || 'active',
           qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${activeBooking.id}`,
-          price: 5, // Assuming a fixed price, adjust as needed
+          price: 5,
           duration_minutes: activeBooking.duration_minutes
         };
 
@@ -89,6 +88,29 @@ export function useActiveBooking() {
           setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
           setProgress(0);
           setIsPastEndTime(true);
+          
+          // If time has expired and QR code not scanned, apply fine
+          if (activeBooking.status !== 'completed') {
+            const { error: updateError } = await supabase
+              .from('bookings')
+              .update({ 
+                status: 'expired',
+                fine: 10 // 10 AED fine
+              } as any)
+              .eq('id', activeBooking.id);
+
+            if (updateError) {
+              console.error("Error applying fine:", updateError);
+            } else {
+              setFine(10);
+              toast({
+                variant: "destructive",
+                title: "Parking Session Expired",
+                description: "A fine of 10 AED has been applied for not scanning the QR code at exit.",
+                duration: 10000,
+              });
+            }
+          }
         } else {
           const hours = Math.floor(diffSeconds / 3600);
           const minutes = Math.floor((diffSeconds % 3600) / 60);
@@ -143,7 +165,7 @@ export function useActiveBooking() {
           if (hours === 0 && minutes === 10 && seconds === 0) {
             toast({
               title: "Time is running out!",
-              description: "Your parking session ends in 10 minutes.",
+              description: "Your parking session ends in 10 minutes. Please scan the QR code at exit to avoid a fine.",
               duration: 10000,
             });
           }
@@ -157,29 +179,144 @@ export function useActiveBooking() {
   }, [navigate, toast, booking]);
 
   const handleScanQr = async () => {
-    if (!booking) return;
+    if (!booking) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No active booking found."
+      });
+      return;
+    }
 
     try {
-      // Update booking with status field
-      const { error } = await supabase
+      // First check if the booking exists and is active
+      const { data: existingBooking, error: checkError } = await supabase
         .from('bookings')
-        .update({ status: 'completed' } as any)
+        .select('*')
+        .eq('id', booking.id)
+        .single();
+
+      if (checkError) {
+        throw new Error(`Error checking booking: ${checkError.message}`);
+      }
+
+      if (!existingBooking) {
+        throw new Error('Booking not found in database');
+      }
+
+      // Calculate if the session is expired
+      const endTime = new Date(existingBooking.start_time);
+      endTime.setMinutes(endTime.getMinutes() + existingBooking.duration_minutes);
+      const now = new Date();
+      const isExpired = now > endTime;
+
+      // Update booking with only the fields that exist in the schema
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({
+          updated_at: new Date().toISOString()
+        })
         .eq('id', booking.id);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw new Error(`Error updating booking: ${updateError.message}`);
+      }
 
+      // Update local state only
       setQrScanned(true);
-      toast({
-        title: "QR Code Scanned",
-        description: "Thank you for using our parking service!",
-        duration: 5000,
-      });
+      setFine(isExpired ? 10 : 0); // Only update the UI state, not the database
+
+      if (isExpired) {
+        toast({
+          variant: "destructive",
+          title: "Late Exit",
+          description: "You have exited after your parking time ended. A fine of 10 AED has been applied.",
+          duration: 10000,
+        });
+      } else {
+        toast({
+          title: "Exit Successful",
+          description: "Thank you for using our parking service!",
+          duration: 5000,
+        });
+      }
+
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+
     } catch (error) {
       console.error("Error scanning QR:", error);
       toast({
         variant: "destructive",
         title: "Scan Error",
-        description: "Could not process QR scan. Please try again."
+        description: error instanceof Error ? error.message : "Could not process QR scan. Please try again."
+      });
+    }
+  };
+
+  const handleEndSessionEarly = async () => {
+    if (!booking) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No active booking found."
+      });
+      return;
+    }
+
+    try {
+      // First check if the booking exists and is active
+      const { data: existingBooking, error: checkError } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('id', booking.id)
+        .single();
+
+      if (checkError) {
+        throw new Error(`Error checking booking: ${checkError.message}`);
+      }
+
+      if (!existingBooking) {
+        throw new Error('Booking not found in database');
+      }
+
+      if (existingBooking.status === 'completed') {
+        throw new Error('This booking has already been completed');
+      }
+
+      // Update booking with status field and mark as completed
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ 
+          status: 'completed',
+          fine: 0,
+        })
+        .eq('id', booking.id)
+        .eq('status', 'active'); // Only update if status is still active
+
+      if (updateError) {
+        throw new Error(`Error updating booking: ${updateError.message}`);
+      }
+
+      setQrScanned(true);
+      setFine(0);
+      toast({
+        title: "Session Ended",
+        description: "Your parking session has been ended successfully.",
+        duration: 5000,
+      });
+      
+      // Navigate back to dashboard after ending session
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Error ending session:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Could not end your parking session. Please try again."
       });
     }
   };
@@ -191,6 +328,7 @@ export function useActiveBooking() {
     isPastEndTime,
     qrScanned,
     fine,
-    handleScanQr
+    handleScanQr,
+    handleEndSessionEarly
   };
 }

@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-export interface SignupFormData {
+interface SignupFormData {
   name: string;
   email: string;
   password: string;
@@ -12,6 +11,15 @@ export interface SignupFormData {
   userType: string;
   studentId: string;
 }
+
+// Map form values to database enum values
+const USER_TYPE_MAP = {
+  student: 'Student',
+  admin: 'Admin',
+  faculty: 'Staff',
+  staff: 'Staff',
+  security: 'Security'
+} as const;
 
 export function useSignup(initialData?: Partial<SignupFormData>) {
   const [formData, setFormData] = useState<SignupFormData>({
@@ -102,37 +110,43 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          full_name: formData.name,
-          user_type: formData.userType,
-          student_id: formData.studentId,
+    try {
+      // Map the form user type to the database enum value
+      const dbUserType = USER_TYPE_MAP[formData.userType as keyof typeof USER_TYPE_MAP];
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            user_type: dbUserType,
+            student_id: formData.studentId,
+          }
         }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. You can now sign in.",
+      });
+      
+      // Navigate to dashboard if auto sign-in worked, else go to login
+      if (data.user) {
+        navigate(dbUserType === 'Admin' ? '/admin' : '/dashboard');
+      } else {
+        navigate('/login');
       }
-    });
-
-    setLoading(false);
-
-    if (error) {
+    } catch (error: any) {
       toast({
         title: "Registration Failed",
         description: error.message || "There was a problem creating your account.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created. You can now sign in.",
-      });
-      // Navigate to dashboard if auto sign-in worked, else go to login
-      if (data.user) {
-        navigate(formData.userType === 'admin' ? '/admin' : '/dashboard');
-      } else {
-        navigate('/login');
-      }
+    } finally {
+      setLoading(false);
     }
   };
 

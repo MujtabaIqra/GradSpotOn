@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -17,16 +16,17 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const isAjmanStudentEmail = (email: string) => {
+  const isAjmanEmail = (email: string) => {
     return email.trim().toLowerCase().endsWith('@ajmanuni.ac.ae');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAjmanStudentEmail(email)) {
+    
+    if (!isAjmanEmail(email)) {
       toast({
         title: "Invalid Email",
-        description: "Only students with @ajmanuni.ac.ae email addresses can sign in.",
+        description: "Please use a valid Ajman University email address.",
         variant: "destructive",
       });
       return;
@@ -34,84 +34,69 @@ const LoginPage = () => {
     
     setLoading(true);
     
-    // Real authentication with Supabase
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    setLoading(false);
-    
-    if (error) {
+    try {
+      // Authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (authError) throw authError;
+      
+      if (!authData.user) throw new Error("No user data returned");
+      
+      toast({
+        title: "Login Successful",
+        description: "Welcome back to SpotOn!"
+      });
+      
+      // Check if it's an admin email and route accordingly
+      const isAdminEmail = email.startsWith('a.') && email.endsWith('@ajmanuni.ac.ae');
+      navigate(isAdminEmail ? '/admin' : '/dashboard');
+      
+    } catch (error: any) {
       toast({
         title: "Login Failed",
         description: error.message || "Invalid email or password. Please try again.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Login Successful",
-        description: "Welcome back to SpotOn!"
-      });
-      navigate('/dashboard');
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen flex flex-col p-4">
-      <div 
-        className="flex items-center gap-2 mb-8 cursor-pointer" 
-        onClick={() => navigate('/')}
-      >
-        <div className="w-10 h-10">
-          <AjmanLogo />
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full p-4">
+        <div className="flex justify-center mb-8">
+          <div className="w-16 h-16">
+            <AjmanLogo />
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="font-bold text-lg leading-tight text-spoton-purple-darkest">Spot<span className="text-spoton-purple">On</span></span>
-          <span className="text-xs text-muted-foreground leading-tight">Ajman University</span>
-        </div>
-      </div>
-      
-      <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-        <h1 className="text-2xl font-bold mb-6 text-center">Welcome Back</h1>
         
         <Card>
           <CardHeader>
-            <CardTitle>Login to Your Account</CardTitle>
-            <CardDescription>Enter your credentials to access your account</CardDescription>
+            <CardTitle>Welcome Back</CardTitle>
+            <CardDescription>Sign in to your SpotOn account</CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
+                <Input
+                  id="email"
+                  type="email"
                   placeholder="your.email@ajmanuni.ac.ae"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
+              
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <a 
-                    href="#" 
-                    className="text-xs text-spoton-purple hover:underline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toast({
-                        title: "Password Reset",
-                        description: "Please contact university IT support to reset your password."
-                      });
-                    }}
-                  >
-                    Forgot password?
-                  </a>
-                </div>
-                <Input 
-                  id="password" 
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -119,35 +104,33 @@ const LoginPage = () => {
                 />
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col gap-4">
+            
+            <CardFooter className="flex flex-col space-y-4">
               <Button 
                 type="submit" 
                 className="w-full bg-spoton-purple hover:bg-spoton-purple-dark"
                 disabled={loading}
               >
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading ? "Signing in..." : "Sign In"}
               </Button>
-              <p className="text-center text-sm">
-                Don't have an account?{' '}
-                <a 
-                  href="#" 
-                  className="text-spoton-purple hover:underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate('/signup');
-                  }}
-                >
-                  Sign up
-                </a>
-              </p>
+              
+              <div className="text-sm text-center space-y-2">
+                <p>
+                  <Button variant="link" className="p-0" onClick={() => navigate('/forgot-password')}>
+                    Forgot your password?
+                  </Button>
+                </p>
+                <p>
+                  Don't have an account?{' '}
+                  <Button variant="link" className="p-0" onClick={() => navigate('/signup')}>
+                    Sign up
+                  </Button>
+                </p>
+              </div>
             </CardFooter>
           </form>
         </Card>
       </div>
-      
-      <footer className="text-center p-4 text-sm text-muted-foreground mt-8">
-        &copy; {new Date().getFullYear()} Ajman University. All rights reserved.
-      </footer>
     </div>
   );
 };

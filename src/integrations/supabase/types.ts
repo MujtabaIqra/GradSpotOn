@@ -6,216 +6,280 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
-      bookings: {
-        Row: {
-          building: Database["public"]["Enums"]["building_code"]
-          created_at: string
-          duration_minutes: number
-          id: string
-          slot: number
-          start_time: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          building: Database["public"]["Enums"]["building_code"]
-          created_at?: string
-          duration_minutes: number
-          id?: string
-          slot: number
-          start_time: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          building?: Database["public"]["Enums"]["building_code"]
-          created_at?: string
-          duration_minutes?: number
-          id?: string
-          slot?: number
-          start_time?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
+          id: string
+          email: string
+          full_name: string | null
+          user_type: 'Student' | 'Staff' | 'Admin' | 'Security'
           created_at: string
-          full_name: string
-          id: string
-          student_id: string | null
           updated_at: string
-          user_type: string
         }
         Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          user_type?: 'Student' | 'Staff' | 'Admin' | 'Security'
           created_at?: string
-          full_name: string
-          id: string
-          student_id?: string | null
           updated_at?: string
-          user_type: string
         }
         Update: {
+          id?: string
+          email?: string
+          full_name?: string | null
+          user_type?: 'Student' | 'Staff' | 'Admin' | 'Security'
           created_at?: string
-          full_name?: string
-          id?: string
-          student_id?: string | null
           updated_at?: string
-          user_type?: string
         }
-        Relationships: []
       }
-      service_orders: {
-        Row: {
-          created_at: string | null
-          id: string
-          payment_id: string | null
-          payment_status: string
-          price: number
-          scheduled_for: string | null
-          service_id: string | null
-          status: string
-          updated_at: string | null
-          user_id: string | null
-          vehicle_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          payment_id?: string | null
-          payment_status?: string
-          price: number
-          scheduled_for?: string | null
-          service_id?: string | null
-          status?: string
-          updated_at?: string | null
-          user_id?: string | null
-          vehicle_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          payment_id?: string | null
-          payment_status?: string
-          price?: number
-          scheduled_for?: string | null
-          service_id?: string | null
-          status?: string
-          updated_at?: string | null
-          user_id?: string | null
-          vehicle_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_orders_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_orders_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      services: {
-        Row: {
-          created_at: string | null
-          description: string
-          id: string
-          name: string
-          price: number
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description: string
-          id?: string
-          name: string
-          price: number
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string
-          id?: string
-          name?: string
-          price?: number
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      Users: {
+      parking_zones: {
         Row: {
           id: number
-          Name: string
-          Password: string
-          Student_ID: number
+          building: 'J1' | 'J2' | 'M1' | 'M2' | 'S1' | 'S2'
+          zone_name: string
+          total_spots: number
+          shaded_spots: number
+          status: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+          status_reason: string | null
+          status_until: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
           id?: number
-          Name: string
-          Password: string
-          Student_ID: number
+          building: 'J1' | 'J2' | 'M1' | 'M2' | 'S1' | 'S2'
+          zone_name: string
+          total_spots: number
+          shaded_spots?: number
+          status?: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+          status_reason?: string | null
+          status_until?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: number
-          Name?: string
-          Password?: string
-          Student_ID?: number
+          building?: 'J1' | 'J2' | 'M1' | 'M2' | 'S1' | 'S2'
+          zone_name?: string
+          total_spots?: number
+          shaded_spots?: number
+          status?: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+          status_reason?: string | null
+          status_until?: string | null
+          created_at?: string
+          updated_at?: string
         }
-        Relationships: []
       }
-      vehicles: {
+      parking_spots: {
         Row: {
-          color: string
-          created_at: string | null
-          id: string
-          make: string
-          model: string
-          plate: string
-          updated_at: string | null
-          user_id: string | null
+          id: number
+          zone_id: number
+          spot_number: number
+          is_shaded: boolean
+          is_reserved: boolean
+          is_disabled_friendly: boolean
+          status: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+          status_reason: string | null
+          status_until: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          color: string
-          created_at?: string | null
-          id?: string
-          make: string
-          model: string
-          plate: string
-          updated_at?: string | null
-          user_id?: string | null
+          id?: number
+          zone_id: number
+          spot_number: number
+          is_shaded?: boolean
+          is_reserved?: boolean
+          is_disabled_friendly?: boolean
+          status?: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+          status_reason?: string | null
+          status_until?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          color?: string
-          created_at?: string | null
-          id?: string
-          make?: string
-          model?: string
-          plate?: string
-          updated_at?: string | null
-          user_id?: string | null
+          id?: number
+          zone_id?: number
+          spot_number?: number
+          is_shaded?: boolean
+          is_reserved?: boolean
+          is_disabled_friendly?: boolean
+          status?: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+          status_reason?: string | null
+          status_until?: string | null
+          created_at?: string
+          updated_at?: string
         }
-        Relationships: []
+      }
+      bookings: {
+        Row: {
+          id: string
+          user_id: string
+          zone_id: number
+          spot_number: number
+          start_time: string
+          end_time: string
+          status: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
+          entry_time: string | null
+          exit_time: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          zone_id: number
+          spot_number: number
+          start_time: string
+          end_time: string
+          status?: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
+          entry_time?: string | null
+          exit_time?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          zone_id?: number
+          spot_number?: number
+          start_time?: string
+          end_time?: string
+          status?: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
+          entry_time?: string | null
+          exit_time?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      violations: {
+        Row: {
+          id: string
+          booking_id: string
+          user_id: string
+          violation_type: 'Overstay' | 'NoQRScan' | 'UnauthorizedSpot' | 'Other'
+          description: string
+          fine_amount: number
+          is_paid: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          user_id: string
+          violation_type: 'Overstay' | 'NoQRScan' | 'UnauthorizedSpot' | 'Other'
+          description: string
+          fine_amount: number
+          is_paid?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          user_id?: string
+          violation_type?: 'Overstay' | 'NoQRScan' | 'UnauthorizedSpot' | 'Other'
+          description?: string
+          fine_amount?: number
+          is_paid?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      parking_analytics: {
+        Row: {
+          id: number
+          zone_id: number
+          date: string
+          total_bookings: number
+          peak_occupancy_rate: number
+          avg_occupancy_rate: number
+          total_violations: number
+          total_fine_amount: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          zone_id: number
+          date: string
+          total_bookings?: number
+          peak_occupancy_rate?: number
+          avg_occupancy_rate?: number
+          total_violations?: number
+          total_fine_amount?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          zone_id?: number
+          date?: string
+          total_bookings?: number
+          peak_occupancy_rate?: number
+          avg_occupancy_rate?: number
+          total_violations?: number
+          total_fine_amount?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          is_read: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          is_read?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          type?: string
+          is_read?: boolean
+          created_at?: string
+          updated_at?: string
+        }
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_occupancy: {
+        Args: { zone_id: number }
+        Returns: {
+          total_spots: number
+          occupied_spots: number
+          occupancy_rate: number
+        }[]
+      }
     }
     Enums: {
-      building_code: "J2-A" | "J2-B" | "J2-C"
+      user_type: 'Student' | 'Staff' | 'Admin' | 'Security'
+      building_code: 'J1' | 'J2' | 'M1' | 'M2' | 'S1' | 'S2'
+      booking_status: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
+      parking_zone_status: 'Open' | 'Closed' | 'Maintenance' | 'Reserved'
+      violation_type: 'Overstay' | 'NoQRScan' | 'UnauthorizedSpot' | 'Other'
     }
     CompositeTypes: {
       [_ in never]: never

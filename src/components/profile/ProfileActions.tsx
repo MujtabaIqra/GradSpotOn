@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -19,15 +18,11 @@ export function ProfileActions() {
         
         if (!session) return;
         
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', session.user.id)
-          .maybeSingle();
-          
-        if (error) throw error;
+        // Check if email matches admin pattern (starts with a.)
+        const isAdminEmail = session.user.email?.startsWith('a.') && 
+                           session.user.email?.endsWith('@ajmanuni.ac.ae');
         
-        setIsAdmin(profile?.user_type === 'Admin');
+        setIsAdmin(!!isAdminEmail);
       } catch (error) {
         console.error('Error checking admin status:', error);
       }
@@ -57,60 +52,34 @@ export function ProfileActions() {
   };
 
   return (
-    <div className="space-y-2">
-      {isAdmin && (
-        <Button 
-          variant="outline" 
-          className="w-full justify-start text-left bg-purple-50"
-          onClick={() => navigate('/admin')}
-        >
-          <Shield className="h-5 w-5 mr-2 text-spoton-purple" />
-          Admin Dashboard
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/bookings')}>
+          <Calendar className="mr-2 h-4 w-4" />
+          My Bookings
         </Button>
-      )}
-      
-      <Button 
-        variant="outline" 
-        className="w-full justify-start text-left" 
-        onClick={() => navigate('/services')}
-      >
-        <CreditCard className="h-5 w-5 mr-2" />
-        Additional Services
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        className="w-full justify-start text-left"
-        onClick={() => navigate('/book')}
-      >
-        <Calendar className="h-5 w-5 mr-2" />
-        Book a Parking Spot
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        className="w-full justify-start text-left"
-        onClick={() => navigate('/history')}
-      >
-        <Calendar className="h-5 w-5 mr-2" />
-        Booking History
-      </Button>
-      
-      <Button variant="outline" className="w-full justify-start text-left">
-        <Settings className="h-5 w-5 mr-2" />
-        App Settings
-      </Button>
-      
-      <Separator className="my-4" />
-      
-      <Button 
-        variant="outline" 
-        className="w-full justify-start text-left text-destructive"
-        onClick={handleSignOut}
-      >
-        <LogOut className="h-5 w-5 mr-2" />
-        Sign Out
-      </Button>
+        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/payments')}>
+          <CreditCard className="mr-2 h-4 w-4" />
+          Payment History
+        </Button>
+        {isAdmin && (
+          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin')}>
+            <Shield className="mr-2 h-4 w-4" />
+            Admin Dashboard
+          </Button>
+        )}
+      </div>
+      <Separator />
+      <div className="space-y-2">
+        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/settings')}>
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </Button>
+        <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-50" onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
+      </div>
     </div>
   );
 }
