@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
 export interface Booking {
   id: string;
@@ -13,6 +14,12 @@ export interface Booking {
   spot: string;
   status: string;
   fine?: number;
+}
+
+// Define the interface for the database booking
+interface DatabaseBooking extends Database['public']['Tables']['bookings']['Row'] {
+  status?: string; // Add the status field as optional
+  fine?: number;   // Add the fine field as optional
 }
 
 export function useBookingHistory() {
@@ -44,16 +51,20 @@ export function useBookingHistory() {
         
         if (error) throw error;
         
-        const formattedBookings: Booking[] = bookingsData.map(booking => ({
-          id: booking.id,
-          date: booking.start_time.split('T')[0],
-          startTime: booking.start_time.split('T')[1].slice(0, 5),
-          endTime: new Date(new Date(booking.start_time).getTime() + booking.duration_minutes * 60000).toTimeString().slice(0, 5),
-          zone: booking.building,
-          spot: `${booking.building}-${booking.slot}`,
-          status: (booking as any).status || 'completed', // Using type assertion for now
-          fine: (booking as any).fine || undefined
-        }));
+        const formattedBookings: Booking[] = bookingsData.map(booking => {
+          // Cast the database booking to our extended interface
+          const dbBooking = booking as DatabaseBooking;
+          return {
+            id: dbBooking.id,
+            date: dbBooking.start_time.split('T')[0],
+            startTime: dbBooking.start_time.split('T')[1].slice(0, 5),
+            endTime: new Date(new Date(dbBooking.start_time).getTime() + dbBooking.duration_minutes * 60000).toTimeString().slice(0, 5),
+            zone: dbBooking.building,
+            spot: `${dbBooking.building}-${dbBooking.slot}`,
+            status: dbBooking.status || 'completed', // Use status if exists, otherwise default to 'completed'
+            fine: dbBooking.fine
+          };
+        });
         
         setBookings(formattedBookings);
         setFilteredBookings(formattedBookings);

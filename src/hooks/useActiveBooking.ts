@@ -15,7 +15,12 @@ interface Booking {
   status: string;
   qrCode: string;
   price: number;
-  duration_minutes: number; // Added to match usage in the component
+  duration_minutes: number;
+}
+
+// Define the interface for the database booking to help with type checking
+interface DatabaseBooking extends Database['public']['Tables']['bookings']['Row'] {
+  status?: string; // Add the status field as optional since it's not in the database schema
 }
 
 export function useActiveBooking() {
@@ -55,7 +60,8 @@ export function useActiveBooking() {
           return;
         }
 
-        const activeBooking = bookings[0];
+        // Cast the database booking to our extended interface that includes status
+        const activeBooking = bookings[0] as DatabaseBooking;
         const formattedBooking = {
           id: activeBooking.id,
           date: activeBooking.start_time.split('T')[0],
@@ -63,7 +69,7 @@ export function useActiveBooking() {
           endTime: new Date(new Date(activeBooking.start_time).getTime() + activeBooking.duration_minutes * 60000).toTimeString().slice(0, 5),
           zone: activeBooking.building,
           spot: `${activeBooking.building}-${activeBooking.slot}`,
-          status: activeBooking.status || 'active',
+          status: activeBooking.status || 'active', // Use status if exists, otherwise default to 'active'
           qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${activeBooking.id}`,
           price: 5, // Assuming a fixed price, adjust as needed
           duration_minutes: activeBooking.duration_minutes
@@ -153,12 +159,11 @@ export function useActiveBooking() {
     if (!booking) return;
 
     try {
-      // Type-safe update with correct properties
+      // Update booking with status field
+      const updateData = { status: 'completed' } as Partial<DatabaseBooking>;
       const { error } = await supabase
         .from('bookings')
-        .update({ 
-          status: 'completed' 
-        } as any) // Using any to bypass type checking for now
+        .update(updateData)
         .eq('id', booking.id);
 
       if (error) throw error;
