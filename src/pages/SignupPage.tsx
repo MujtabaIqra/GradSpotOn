@@ -58,7 +58,7 @@ const SignupPage = () => {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="your.email@ajmanuni.ac.ae"
+                  placeholder={formData.userType === 'admin' ? 'a.name@ajmanuni.ac.ae' : 'your.email@ajmanuni.ac.ae'}
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -76,9 +76,9 @@ const SignupPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="faculty">Faculty Member</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="visitor">Visitor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

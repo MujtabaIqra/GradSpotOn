@@ -27,7 +27,6 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Update form fields by field id
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
@@ -37,17 +36,47 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
     setFormData((prev) => ({ ...prev, userType: value }));
   };
 
-  const isAjmanStudentEmail = (email: string) => {
-    return email.trim().toLowerCase().endsWith("@ajmanuni.ac.ae");
+  const isValidEmail = (email: string) => {
+    const emailDomain = "@ajmanuni.ac.ae";
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    if (!normalizedEmail.endsWith(emailDomain)) {
+      return false;
+    }
+
+    // Check if it's an admin email (starts with 'a.')
+    const isAdminEmail = normalizedEmail.startsWith("a.");
+    const userType = formData.userType;
+
+    // Validate that admin emails match admin user type and vice versa
+    if (isAdminEmail && userType !== "admin") {
+      toast({
+        title: "Invalid User Type",
+        description: "Admin emails must select 'Admin' as user type.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!isAdminEmail && userType === "admin") {
+      toast({
+        title: "Invalid User Type",
+        description: "Non-admin emails cannot select 'Admin' as user type.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAjmanStudentEmail(formData.email)) {
+    if (!isValidEmail(formData.email)) {
       toast({
         title: "Invalid Email",
-        description: "Only students with @ajmanuni.ac.ae email addresses can sign up.",
+        description: "Please use a valid Ajman University email address with the correct format.",
         variant: "destructive",
       });
       return;
@@ -100,7 +129,7 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
       });
       // Navigate to dashboard if auto sign-in worked, else go to login
       if (data.user) {
-        navigate('/dashboard');
+        navigate(formData.userType === 'admin' ? '/admin' : '/dashboard');
       } else {
         navigate('/login');
       }
