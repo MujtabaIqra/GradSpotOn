@@ -14,6 +14,8 @@ import UserProfilePage from "./pages/UserProfilePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ServicesPage from "./pages/ServicesPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminRoute from "./components/admin/AdminRoute";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,13 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/services" element={<ServicesPage />} />
+          
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          </Route>
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>

@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { VehicleInfo } from '@/components/VehicleInfo';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
-import { AccountInfo } from '@/components/profile/AccountInfo';
+import { EditableAccountInfo } from '@/components/profile/EditableAccountInfo';
 import { ProfileActions } from '@/components/profile/ProfileActions';
 import { User } from '@supabase/supabase-js';
 
@@ -120,9 +120,11 @@ const UserProfilePage = () => {
           initials={initials}
         />
         
-        <AccountInfo
+        <EditableAccountInfo
+          userId={user?.id || ''}
           studentId={profile?.student_id}
           userType={profile?.user_type}
+          fullName={profile?.full_name}
         />
         
         <VehicleInfo />
