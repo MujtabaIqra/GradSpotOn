@@ -76,12 +76,16 @@ const BookingPage = () => {
     const selectedDateTime = new Date(`${date}T${startTime}`);
     const { data: bookings, error } = await supabase
       .from('bookings')
-      .select('slot, start_time, duration_minutes')
+      .select('slot, start_time, duration_minutes, status')
       .eq('building', building);
 
     let slots: number[] = [];
     if (!error && bookings) {
-      slots = getAvailableSlots(bookings, date, startTime, Number(duration));
+      // Only consider bookings with status 'active' or 'upcoming'
+      const activeBookings = bookings.filter(
+        (bk: any) => bk.status === 'active' || bk.status === 'upcoming' || !bk.status // fallback for legacy
+      );
+      slots = getAvailableSlots(activeBookings, date, startTime, Number(duration));
     }
     setAvailableSlots(slots);
     setSlot(slots.length > 0 ? String(slots[0]) : '');

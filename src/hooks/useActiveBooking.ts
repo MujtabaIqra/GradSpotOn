@@ -33,6 +33,36 @@ export function useActiveBooking() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const calculateTimeLeft = (startTime: string, endTime: string) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    // If booking hasn't started yet
+    if (now < start) {
+      const totalMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
+      return {
+        hours: Math.floor(totalMinutes / 60),
+        minutes: totalMinutes % 60,
+        seconds: 0
+      };
+    }
+    // If booking has ended
+    else if (now >= end) {
+      return { hours: 0, minutes: 0, seconds: 0 };
+    }
+    // If booking is in progress
+    else {
+      const diffMs = end.getTime() - now.getTime();
+      const diffSeconds = Math.floor(diffMs / 1000);
+      return {
+        hours: Math.floor(diffSeconds / 3600),
+        minutes: Math.floor((diffSeconds % 3600) / 60),
+        seconds: diffSeconds % 60
+      };
+    }
+  };
+
   useEffect(() => {
     const fetchActiveBooking = async () => {
       try {
@@ -43,7 +73,6 @@ export function useActiveBooking() {
           return;
         }
 
-        // Fetch the most recent active booking for the current user
         const { data: bookings, error } = await supabase
           .from('bookings')
           .select('*')
@@ -60,13 +89,15 @@ export function useActiveBooking() {
           return;
         }
 
-        // Cast the database booking to our extended type that includes status
         const activeBooking = bookings[0] as DatabaseBooking;
+        const startTime = activeBooking.start_time;
+        const endTime = new Date(new Date(startTime).getTime() + activeBooking.duration_minutes * 60000).toISOString();
+        
         const formattedBooking = {
           id: activeBooking.id,
-          date: activeBooking.start_time.split('T')[0],
-          startTime: activeBooking.start_time.split('T')[1].slice(0, 5),
-          endTime: new Date(new Date(activeBooking.start_time).getTime() + activeBooking.duration_minutes * 60000).toTimeString().slice(0, 5),
+          date: startTime.split('T')[0],
+          startTime: new Date(startTime).toTimeString().slice(0, 5),
+          endTime: new Date(endTime).toTimeString().slice(0, 5),
           zone: activeBooking.building,
           spot: `${activeBooking.building}-${activeBooking.slot}`,
           status: activeBooking.status || 'active',
@@ -76,51 +107,7 @@ export function useActiveBooking() {
         };
 
         setBooking(formattedBooking);
-
-        // Calculate time remaining
-        const endTime = new Date(activeBooking.start_time);
-        endTime.setMinutes(endTime.getMinutes() + activeBooking.duration_minutes);
-        const now = new Date();
-        const diffMs = endTime.getTime() - now.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-
-        if (diffSeconds <= 0) {
-          setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-          setProgress(0);
-          setIsPastEndTime(true);
-          
-          // If time has expired and QR code not scanned, apply fine
-          if (activeBooking.status !== 'completed') {
-            const { error: updateError } = await supabase
-              .from('bookings')
-              .update({ 
-                status: 'expired',
-                fine: 10 // 10 AED fine
-              } as any)
-              .eq('id', activeBooking.id);
-
-            if (updateError) {
-              console.error("Error applying fine:", updateError);
-            } else {
-              setFine(10);
-              toast({
-                variant: "destructive",
-                title: "Parking Session Expired",
-                description: "A fine of 10 AED has been applied for not scanning the QR code at exit.",
-                duration: 10000,
-              });
-            }
-          }
-        } else {
-          const hours = Math.floor(diffSeconds / 3600);
-          const minutes = Math.floor((diffSeconds % 3600) / 60);
-          const seconds = diffSeconds % 60;
-          setTimeLeft({ hours, minutes, seconds });
-          
-          const totalDuration = activeBooking.duration_minutes * 60;
-          const progressPercent = ((totalDuration - diffSeconds) / totalDuration) * 100;
-          setProgress(progressPercent);
-        }
+        setTimeLeft(calculateTimeLeft(startTime, endTime));
 
       } catch (error) {
         console.error("Error fetching active booking:", error);
@@ -136,47 +123,45 @@ export function useActiveBooking() {
 
     const timer = setInterval(() => {
       if (booking) {
-        setTimeLeft(prev => {
-          if (prev.hours === 0 && prev.minutes === 0 && prev.seconds === 0) {
-            setIsPastEndTime(true);
-            clearInterval(timer);
-            return prev;
-          }
-          
-          let hours = prev.hours;
-          let minutes = prev.minutes;
-          let seconds = prev.seconds - 1;
-          
-          if (seconds < 0) {
-            seconds = 59;
-            minutes -= 1;
-          }
-          
-          if (minutes < 0) {
-            minutes = 59;
-            hours -= 1;
-          }
-          
-          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-          const totalDuration = booking.duration_minutes * 60;
-          const newProgress = ((totalDuration - totalSeconds) / totalDuration) * 100;
-          setProgress(newProgress);
-          
-          if (hours === 0 && minutes === 10 && seconds === 0) {
-            toast({
-              title: "Time is running out!",
-              description: "Your parking session ends in 10 minutes. Please scan the QR code at exit to avoid a fine.",
-              duration: 10000,
-            });
-          }
-          
-          return { hours, minutes, seconds };
-        });
+        const startTime = booking.date + 'T' + booking.startTime;
+        const endTime = booking.date + 'T' + booking.endTime;
+        const newTimeLeft = calculateTimeLeft(startTime, endTime);
+        setTimeLeft(newTimeLeft);
+
+        // Update progress
+        const now = new Date();
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        
+        if (now >= end) {
+          setProgress(100);
+          setIsPastEndTime(true);
+          clearInterval(timer);
+        } else if (now >= start) {
+          const totalDuration = end.getTime() - start.getTime();
+          const elapsed = now.getTime() - start.getTime();
+          setProgress((elapsed / totalDuration) * 100);
+        } else {
+          setProgress(0);
+        }
       }
     }, 1000);
 
     return () => clearInterval(timer);
   }, [navigate, toast, booking]);
+
+  // New useEffect to update booking status to 'expired' when isPastEndTime becomes true
+  useEffect(() => {
+    const markBookingExpired = async () => {
+      if (booking && isPastEndTime && booking.status !== 'completed') {
+        await supabase
+          .from('bookings')
+          .update({ status: 'expired' })
+          .eq('id', booking.id);
+      }
+    };
+    markBookingExpired();
+  }, [isPastEndTime, booking]);
 
   const handleScanQr = async () => {
     if (!booking) {

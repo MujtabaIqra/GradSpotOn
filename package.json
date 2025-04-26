@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "update-admin": "tsx src/scripts/updateAdmin.ts",
     "check-profile": "tsx src/scripts/checkProfile.ts",
-    "check-admin": "tsx src/scripts/checkAdminAccount.ts"
+    "check-admin": "tsx src/scripts/checkAdminAccount.ts",
+    "delete-my-bookings": "tsx src/scripts/deleteMyBookings.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

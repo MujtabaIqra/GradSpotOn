@@ -1,10 +1,11 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { useActiveBooking } from "@/hooks/useActiveBooking";
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 
 const ActiveBookingPage = () => {
   const {
@@ -18,13 +19,28 @@ const ActiveBookingPage = () => {
     handleEndSessionEarly
   } = useActiveBooking();
 
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-  };
+  const [exited, setExited] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
 
   const formatTime = (time: { hours: number, minutes: number, seconds: number }) => {
     return `${time.hours.toString().padStart(2, '0')}:${time.minutes.toString().padStart(2, '0')}:${time.seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleExitParking = async () => {
+    if (!booking) return;
+    setLoading(true);
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status: 'completed' })
+      .eq('id', booking.id);
+    setLoading(false);
+    if (error) {
+      toast({ title: 'Error', description: 'Could not complete booking.', variant: 'destructive' });
+    } else {
+      setExited(true);
+      toast({ title: 'Parking session completed', description: 'You have exited the parking.' });
+    }
   };
 
   if (!booking) {
@@ -34,6 +50,18 @@ const ActiveBookingPage = () => {
       </div>
     );
   }
+
+  if (booking.status === 'completed' || booking.status === 'expired') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-green-600 font-semibold text-center">
+          You have exited the parking. Session completed.
+        </p>
+      </div>
+    );
+  }
+
+  const isActive = booking.status === 'active' || booking.status === 'upcoming' || (!isPastEndTime && !exited);
 
   return (
     <div className="min-h-screen pb-16">
@@ -76,102 +104,31 @@ const ActiveBookingPage = () => {
                 <p className="text-sm">Please prepare to leave your parking spot</p>
               </div>
             )}
-            <div className="mt-2 text-sm">
-              <p className="font-medium">Current Date & Time</p>
-              <p className="text-muted-foreground">{new Date().toLocaleString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              })}</p>
-            </div>
           </CardHeader>
           
           <CardContent className="space-y-4">
-            {isPastEndTime && !qrScanned && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-start gap-3">
-                <AlertTriangle className="text-red-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-red-800">Action Required</p>
-                  <p className="text-sm text-red-600">Please scan the QR code at the exit gate to avoid a fine.</p>
-                  {fine > 0 && (
-                    <p className="font-medium text-red-800 mt-2">Fine: {fine} AED applied</p>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium">Date</p>
-                <p className="text-muted-foreground">{formatDate(booking.date)}</p>
-              </div>
+            <div className="text-center text-sm">
+              <p className="font-medium">Booking Time</p>
+              <p className="text-muted-foreground">
+                {booking.startTime} - {booking.endTime}
+              </p>
             </div>
-            
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium">Time</p>
-                <p className="text-muted-foreground">
-                  {booking.startTime} - {booking.endTime}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium">Location</p>
-                <p className="text-muted-foreground">Zone {booking.zone}, Spot {booking.spot}</p>
-              </div>
-            </div>
-            
-            <div className="border-t border-border pt-4 mt-4">
-              <p className="text-center font-medium mb-3">Access QR Code</p>
-              <div className="flex justify-center">
+            {isActive && !exited && (
+              <div className="flex flex-col items-center gap-4 mt-6">
                 <img 
                   src={booking.qrCode} 
                   alt="QR Code for parking access" 
                   className="w-40 h-40 border border-border rounded-md p-2"
                 />
+                <Button onClick={handleExitParking} disabled={loading} className="w-full">
+                  {loading ? 'Exiting...' : 'Scan QR / Exit Parking'}
+                </Button>
               </div>
-              <p className="text-xs text-center text-muted-foreground mt-2">Booking ID: {booking.id}</p>
-              
-              {!qrScanned && (
-                <div className="mt-4">
-                  <Button 
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleScanQr}
-                  >
-                    Simulate QR Scan at Exit
-                  </Button>
-                </div>
-              )}
-            </div>
+            )}
+            {exited && (
+              <div className="text-green-600 font-semibold text-center mt-4">You have exited the parking. Session completed.</div>
+            )}
           </CardContent>
-          
-          <CardFooter className="flex-col gap-3">
-            <Button 
-              className="w-full bg-spoton-purple hover:bg-spoton-purple-dark"
-              onClick={() => window.location.assign('/book')}
-            >
-              Extend Time
-            </Button>
-            
-            <Button 
-              variant="outline"
-              className="w-full text-destructive border-destructive hover:bg-destructive/10"
-              onClick={handleEndSessionEarly}
-            >
-              End Session Early
-            </Button>
-          </CardFooter>
         </Card>
       </main>
       

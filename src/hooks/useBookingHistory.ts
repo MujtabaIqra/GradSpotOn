@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +9,8 @@ export interface Booking {
   date: string;
   startTime: string;
   endTime: string;
-  zone: string;
-  spot: string;
+  building: string;
+  slot: number;
   status: string;
   fine?: number;
 }
@@ -52,16 +51,37 @@ export function useBookingHistory() {
         if (error) throw error;
         
         const formattedBookings: Booking[] = bookingsData.map(booking => {
-          // Cast the database booking to our extended type
           const dbBooking = booking as DatabaseBooking;
+          const startDate = new Date(dbBooking.start_time);
+          const endDate = new Date(startDate.getTime() + dbBooking.duration_minutes * 60000);
+
+          // Format times as 12-hour with AM/PM
+          const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          const endTime = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+          // Improved status logic
+          let status = dbBooking.status;
+          if (status === 'completed' || status === 'expired') {
+            // Use the DB value
+          } else {
+            const now = new Date();
+            if (now < startDate) {
+              status = 'upcoming';
+            } else if (now >= startDate && now < endDate) {
+              status = 'active';
+            } else {
+              status = 'completed';
+            }
+          }
+
           return {
             id: dbBooking.id,
             date: dbBooking.start_time.split('T')[0],
-            startTime: dbBooking.start_time.split('T')[1].slice(0, 5),
-            endTime: new Date(new Date(dbBooking.start_time).getTime() + dbBooking.duration_minutes * 60000).toTimeString().slice(0, 5),
-            zone: dbBooking.building,
-            spot: `${dbBooking.building}-${dbBooking.slot}`,
-            status: dbBooking.status || 'completed', // Use status if exists, otherwise default to 'completed'
+            startTime,
+            endTime,
+            building: dbBooking.building,
+            slot: dbBooking.slot,
+            status,
             fine: dbBooking.fine
           };
         });
@@ -118,8 +138,8 @@ export function useBookingHistory() {
       result = result.filter(
         booking =>
           booking.id.toLowerCase().includes(query) ||
-          booking.zone.toLowerCase().includes(query) ||
-          booking.spot.toLowerCase().includes(query) ||
+          booking.building.toLowerCase().includes(query) ||
+          booking.slot.toString().includes(query) ||
           booking.date.includes(query)
       );
     }

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,8 @@ import { Calendar, Clock, MapPin, Search, Filter } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBookingHistory } from '@/hooks/useBookingHistory';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 const BookingHistoryPage = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const BookingHistoryPage = () => {
     statusFilter,
     setStatusFilter
   } = useBookingHistory();
+  const { toast } = useToast();
   
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -30,6 +32,36 @@ const BookingHistoryPage = () => {
     // Future implementation of booking details
     console.log('Viewing details for booking:', bookingId);
   };
+
+  const handleDeleteAllBookings = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL your bookings? This cannot be undone.')) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: 'Not logged in',
+        description: 'Please log in to delete your bookings.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('user_id', session.user.id);
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not delete your bookings.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'All bookings deleted',
+        description: 'Your booking history is now empty.',
+      });
+      window.location.reload();
+    }
+  };
   
   return (
     <div className="min-h-screen pb-16">
@@ -39,6 +71,12 @@ const BookingHistoryPage = () => {
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-1">Booking History</h1>
           <p className="text-muted-foreground">Your past parking sessions</p>
+        </div>
+        
+        <div className="flex justify-end mb-4">
+          <Button variant="destructive" onClick={handleDeleteAllBookings}>
+            Delete All My Bookings
+          </Button>
         </div>
         
         <div className="mb-6 space-y-4">
@@ -87,7 +125,7 @@ const BookingHistoryPage = () => {
                   }`} />
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex justify-between items-center">
-                      <span>{formatDate(booking.date)}</span>
+                      <span>{formatDate(booking.date)}{` ${booking.startTime} - ${booking.endTime}`}</span>
                       <span className="text-sm px-2 py-1 rounded-full bg-muted capitalize">
                         {booking.status}
                       </span>
@@ -100,7 +138,7 @@ const BookingHistoryPage = () => {
                     </div>
                     <div className="flex items-center text-sm">
                       <MapPin className="w-4 h-4 text-muted-foreground mr-2" />
-                      <span>Zone {booking.zone}, Spot {booking.spot}</span>
+                      <span>{booking.building}, Spot {booking.slot}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 text-sm">
                       <span className="text-muted-foreground">{booking.id}</span>

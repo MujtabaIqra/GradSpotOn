@@ -16,6 +16,8 @@ const Header = () => {
         
         if (!session) return;
         
+        // Debug log
+        console.log('Logged in as:', session.user.email);
         // Check if email matches admin pattern (starts with a.)
         const isAdminEmail = session.user.email?.startsWith('a.') && 
                            session.user.email?.endsWith('@ajmanuni.ac.ae');
@@ -29,6 +31,11 @@ const Header = () => {
     checkAdminStatus();
   }, []);
   
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
   return (
     <header className="w-full py-3 px-4 sm:px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
       <div className="flex items-center gap-2" onClick={() => navigate('/')} role="button">
@@ -59,6 +66,11 @@ const Header = () => {
         <Button variant="outline" size="icon" className="rounded-full" onClick={() => navigate('/profile')} aria-label="Profile">
           <User className="h-5 w-5" />
         </Button>
+        {isAdmin && (
+          <button onClick={handleLogout} className="text-red-600 font-bold hover:underline">
+            Logout
+          </button>
+        )}
       </div>
     </header>
   );
