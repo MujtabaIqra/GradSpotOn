@@ -1,26 +1,37 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  Table, TableBody, TableCell, TableHead, 
+  TableHeader, TableRow 
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Users, Car, AlertCircle, TrendingUp } from 'lucide-react';
+import { 
+  AlertTriangle, Users, Car, AlertCircle, 
+  TrendingUp 
+} from 'lucide-react';
+import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 
-interface AdminOverviewProps {
-  parkingZones: any[];
-  users: any[];
-  bookings: any[];
-  violations: any[];
-  analytics: any;
-}
+const AdminOverview = () => {
+  const {
+    parkingZones,
+    users,
+    bookings,
+    violations,
+    analytics,
+    loading
+  } = useAdminDashboard();
 
-const AdminOverview: React.FC<AdminOverviewProps> = ({
-  parkingZones,
-  users,
-  bookings,
-  violations,
-  analytics
-}) => {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p>Loading dashboard data...</p>
+      </div>
+    );
+  }
+
   // Calculate total occupancy
   const totalSpots = parkingZones.reduce((acc, zone) => acc + zone.total_spots, 0);
   const occupiedSpots = parkingZones.reduce((acc, zone) => {
@@ -28,13 +39,6 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
     return acc + Math.round((occupancyRate / 100) * zone.total_spots);
   }, 0);
   const totalOccupancyRate = (occupiedSpots / totalSpots) * 100;
-
-  // Get active bookings
-  const activeBookings = bookings.filter(b => b.status === 'Active');
-  
-  // Get unpaid violations
-  const unpaidViolations = violations.filter(v => !v.is_paid);
-  const totalFines = unpaidViolations.reduce((acc, v) => acc + v.fine_amount, 0);
 
   // Get high occupancy zones
   const highOccupancyZones = parkingZones.filter(zone => zone.occupancy_rate >= 80);
@@ -57,12 +61,12 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
         </Alert>
       )}
 
-      {unpaidViolations.length > 0 && (
+      {violations.filter(v => !v.is_paid).length > 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Pending Violations</AlertTitle>
           <AlertDescription>
-            There are {unpaidViolations.length} unpaid violations with total fines of {totalFines} AED
+            There are {violations.filter(v => !v.is_paid).length} unpaid violations
           </AlertDescription>
         </Alert>
       )}
@@ -93,9 +97,11 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeBookings.length}</div>
+            <div className="text-2xl font-bold">
+              {bookings.filter(b => b.status === 'Active').length}
+            </div>
             <Progress 
-              value={(activeBookings.length / totalSpots) * 100} 
+              value={(bookings.filter(b => b.status === 'Active').length / totalSpots) * 100} 
               className="mt-2" 
             />
             <p className="text-xs text-muted-foreground mt-2">
@@ -143,7 +149,7 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
               {bookings.slice(0, 5).map((booking) => (
                 <TableRow key={booking.id}>
                   <TableCell>
-                    {new Date(booking.created_at).toLocaleTimeString()}
+                    {new Date(booking.start_time).toLocaleTimeString()}
                   </TableCell>
                   <TableCell>{booking.user?.full_name || 'Unknown'}</TableCell>
                   <TableCell>Parking Booking</TableCell>
@@ -178,7 +184,7 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
               <div key={zone.id} className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span>{zone.zone_name}</span>
-                  <span>{Math.round(zone.occupancy_rate)}%</span>
+                  <span>{Math.round(zone.occupancy_rate || 0)}%</span>
                 </div>
                 <Progress 
                   value={zone.occupancy_rate} 
@@ -187,7 +193,7 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>
-                    {Math.round((zone.occupancy_rate / 100) * zone.total_spots)} of {zone.total_spots} spots
+                    {Math.round(((zone.occupancy_rate || 0) / 100) * zone.total_spots)} of {zone.total_spots} spots
                   </span>
                   <span>
                     {zone.status}
@@ -203,4 +209,4 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
   );
 };
 
-export default AdminOverview; 
+export default AdminOverview;
