@@ -1,348 +1,426 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BarChart, PieChart, Calendar, Bell, MapPin, 
-  Users, Settings, Shield, Search, Filter 
-} from 'lucide-react';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
-} from "@/components/ui/table";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, subHours } from 'date-fns';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
+import { Database } from '@/integrations/supabase/types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const TOTAL_SPOTS = 250;
+
+type AuthUser = {
+  email: string | null;
+  phone: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  providers: string[];
+};
+
+type UserProfile = {
+  uid: string;
+  fullname: string;
+  usertype: string;
+  student_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type Booking = Database['public']['Tables']['bookings']['Row'];
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [occupancyPercent, setOccupancyPercent] = useState(0);
+  const [occupiedCount, setOccupiedCount] = useState(0);
+  const [activeUsers, setActiveUsers] = useState(0);
+  const [violations, setViolations] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [userTypeFilter, setUserTypeFilter] = useState('all');
+  const [hourlyData, setHourlyData] = useState<{ hour: string; bookings: number }[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
 
-  // Mock data for occupancy
-  const occupancyData = {
-    total: 250,
-    occupied: 183,
-    available: 67,
-    occupancyRate: 73.2,
-    zones: [
-      { name: "Zone A", total: 80, occupied: 72, type: "Student", shadedSpots: 40 },
-      { name: "Zone B", total: 60, occupied: 45, type: "Staff", shadedSpots: 30 },
-      { name: "Zone C", total: 70, occupied: 42, type: "Faculty", shadedSpots: 35 },
-      { name: "Zone D", total: 40, occupied: 24, type: "Visitor", shadedSpots: 15 }
-    ]
-  };
-
-  // Mock data for users
-  const userData = {
-    total: 1250,
-    active: 870,
-    registrationsPending: 23,
-    violations: 15
-  };
-
-  // Mock data for bookings
-  const recentBookings = [
-    { id: "BK-1234", user: "John Smith", spot: "A-15", time: "10:00 - 12:00", status: "Active" },
-    { id: "BK-1235", user: "Sara Johnson", spot: "B-22", time: "09:30 - 11:30", status: "Complete" },
-    { id: "BK-1236", user: "Ahmed Ali", spot: "C-08", time: "13:00 - 15:00", status: "Pending" },
-    { id: "BK-1237", user: "Maria Garcia", spot: "D-04", time: "14:00 - 16:00", status: "Cancelled" },
-    { id: "BK-1238", user: "David Lee", spot: "A-23", time: "11:00 - 13:00", status: "Complete" }
-  ];
-  
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Admin Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Shield className="h-8 w-8 text-spoton-purple mr-3" />
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button size="sm" variant="ghost" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-              </Button>
-              
-              <div className="h-8 w-8 bg-spoton-purple rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">A</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
       
-      <div className="flex h-[calc(100vh-64px)]">
-        {/* Admin Sidebar */}
-        <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 hidden md:block">
-          <nav className="space-y-1">
-            <Button 
-              variant={activeTab === 'overview' ? 'secondary' : 'ghost'} 
-              className="w-full justify-start"
-              onClick={() => setActiveTab('overview')}
-            >
-              <BarChart className="h-5 w-5 mr-2" />
-              Overview
-            </Button>
-            
-            <Button 
-              variant={activeTab === 'occupancy' ? 'secondary' : 'ghost'} 
-              className="w-full justify-start"
-              onClick={() => setActiveTab('occupancy')}
-            >
-              <MapPin className="h-5 w-5 mr-2" />
-              Parking Occupancy
-            </Button>
-            
-            <Button 
-              variant={activeTab === 'bookings' ? 'secondary' : 'ghost'} 
-              className="w-full justify-start"
-              onClick={() => setActiveTab('bookings')}
-            >
-              <Calendar className="h-5 w-5 mr-2" />
-              Bookings
-            </Button>
-            
-            <Button 
-              variant={activeTab === 'users' ? 'secondary' : 'ghost'} 
-              className="w-full justify-start"
-              onClick={() => setActiveTab('users')}
-            >
-              <Users className="h-5 w-5 mr-2" />
-              User Management
-            </Button>
-            
-            <Button 
-              variant={activeTab === 'analytics' ? 'secondary' : 'ghost'} 
-              className="w-full justify-start"
-              onClick={() => setActiveTab('analytics')}
-            >
-              <PieChart className="h-5 w-5 mr-2" />
-              Analytics
-            </Button>
-            
-            <Button 
-              variant={activeTab === 'settings' ? 'secondary' : 'ghost'} 
-              className="w-full justify-start"
-              onClick={() => setActiveTab('settings')}
-            >
-              <Settings className="h-5 w-5 mr-2" />
-              Settings
-            </Button>
-          </nav>
-        </aside>
+      try {
+        // First, let's check if we can connect to Supabase
+        console.log('Testing Supabase connection...');
+        const { data: testData, error: testError } = await supabase
+          .from('profiles')
+          .select('count')
+          .single();
         
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <div className="md:hidden">
-              <TabsList className="grid grid-cols-3 gap-2">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="occupancy">Occupancy</TabsTrigger>
-                <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              </TabsList>
-              <div className="my-2">
-                <TabsList className="grid grid-cols-3 gap-2">
-                  <TabsTrigger value="users">Users</TabsTrigger>
-                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                  <TabsTrigger value="settings">Settings</TabsTrigger>
-                </TabsList>
+        console.log('Supabase connection test:', { testData, testError });
+
+        // Fetch all registered users from profiles
+        console.log('Fetching all registered users from Supabase...');
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        console.log('Raw users data:', users);
+        console.log('Users error:', usersError);
+
+        if (usersError) {
+          console.error('Error fetching users:', usersError);
+          throw usersError;
+        }
+
+        if (users) {
+          console.log('Number of users fetched:', users.length);
+          // Transform the data to match our UserProfile type
+          const transformedUsers = users.map(user => ({
+            uid: user.id,
+            fullname: user.full_name,
+            usertype: user.user_type,
+            student_id: user.student_id,
+            created_at: user.created_at,
+            updated_at: user.updated_at
+          }));
+          console.log('Transformed users:', transformedUsers);
+          setRegisteredUsers(transformedUsers);
+        } else {
+          console.log('No users found in the database');
+        }
+
+        // Fetch bookings for the last 24 hours
+        const twentyFourHoursAgo = subHours(new Date(), 24).toISOString();
+        console.log('Fetching bookings from:', twentyFourHoursAgo);
+        
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('*')
+          .gte('created_at', twentyFourHoursAgo)
+          .order('created_at', { ascending: false });
+
+        console.log('Bookings fetched:', bookings?.length);
+        console.log('Bookings error:', bookingsError);
+
+        if (bookingsError) {
+          console.error('Error fetching bookings:', bookingsError);
+        } else if (bookings) {
+          const now = new Date();
+          
+          // Active bookings
+          const activeBookings = bookings.filter(bk => {
+            if (bk.status !== 'Active') return false;
+            const start = new Date(bk.start_time);
+            const end = new Date(bk.end_time);
+            return now >= start && now < end;
+          });
+
+          // Calculate metrics
+          const uniqueOccupied = new Set(activeBookings.map(bk => `${bk.zone_id}-${bk.spot_number}`));
+          setOccupiedCount(uniqueOccupied.size);
+          setOccupancyPercent((uniqueOccupied.size / TOTAL_SPOTS) * 100);
+
+          const uniqueUsers = new Set(activeBookings.map(bk => bk.user_id));
+          setActiveUsers(uniqueUsers.size);
+
+          // Violations
+          const violationCount = bookings.filter(bk => bk.status === 'Expired').length;
+          setViolations(violationCount);
+
+          // Recent bookings
+          setRecentBookings(bookings);
+
+          // Generate hourly data for the last 24 hours
+          const hourlyStats = Array.from({ length: 24 }, (_, i) => {
+            const hour = subHours(now, i);
+            const hourStr = format(hour, 'HH:00');
+            
+            const hourBookings = bookings.filter(bk => {
+              const bookingTime = new Date(bk.created_at);
+              return bookingTime.getHours() === hour.getHours() && 
+                     bookingTime.getDate() === hour.getDate();
+            });
+
+            return {
+              hour: hourStr,
+              bookings: hourBookings.length
+            };
+          }).reverse();
+
+          setHourlyData(hourlyStats);
+        }
+      } catch (error) {
+        console.error('Error in fetchDashboardData:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Filter users based on search
+  const filteredUsers = registeredUsers.filter(user => 
+    user.fullname?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.student_id?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.usertype?.toLowerCase().includes(userSearchTerm.toLowerCase())
+  );
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return format(date, 'PP');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return format(date, 'PPp');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  // Filter bookings based on search and status
+  const filteredBookings = recentBookings.filter(booking => {
+    const matchesSearch = 
+      booking.zone_id?.toString().includes(searchTerm) ||
+      booking.spot_number?.toString().includes(searchTerm) ||
+      booking.user_id?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="min-h-screen pb-16">
+      <Header />
+      <main className="p-4 max-w-6xl mx-auto">
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold">{registeredUsers.length}</div>
+                  <div className="text-muted-foreground">registered accounts</div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold">{activeUsers}</div>
+                  <div className="text-muted-foreground">users with active bookings</div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Violations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold">{violations}</div>
+                  <div className="text-muted-foreground">expired bookings</div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Registered Users Table */}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Registered Users ({registeredUsers.length})</CardTitle>
+                <div className="flex gap-4">
+                  <Input
+                    placeholder="Search by name, ID, or type..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="student">Students</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="visitor">Visitors</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-medium">Parking Occupancy</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{occupancyData.occupancyRate}%</div>
-                    <Progress value={occupancyData.occupancyRate} className="mt-2" />
-                    <div className="text-sm text-muted-foreground mt-2">
-                      {occupancyData.occupied} of {occupancyData.total} spots occupied
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-medium">Active Users</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{userData.active}</div>
-                    <Progress value={(userData.active / userData.total) * 100} className="mt-2" />
-                    <div className="text-sm text-muted-foreground mt-2">
-                      {userData.registrationsPending} pending registrations
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-medium">Violations</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{userData.violations}</div>
-                    <div className="h-2 mt-2"></div>
-                    <div className="text-sm text-muted-foreground mt-2">
-                      Unpaid fines: 450 AED
-                    </div>
-                  </CardContent>
-                </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>User Type</TableHead>
+                      <TableHead>Registration Date</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers
+                      .filter(user => userTypeFilter === 'all' || user.usertype === userTypeFilter)
+                      .map((user) => (
+                      <TableRow key={user.uid}>
+                        <TableCell>{user.fullname}</TableCell>
+                        <TableCell>{user.student_id}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            user.usertype === 'student' ? 'bg-blue-100 text-blue-800' :
+                            user.usertype === 'staff' ? 'bg-purple-100 text-purple-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {user.usertype?.charAt(0).toUpperCase() + (user.usertype?.slice(1) || '')}
+                          </span>
+                        </TableCell>
+                        <TableCell>{formatDate(user.created_at)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            activeUsers > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {activeUsers > 0 ? 'Active' : 'Inactive'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Recent Bookings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Booking ID</TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Spot</TableHead>
-                          <TableHead>Time</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentBookings.map(booking => (
-                          <TableRow key={booking.id}>
-                            <TableCell className="font-medium">{booking.id}</TableCell>
-                            <TableCell>{booking.user}</TableCell>
-                            <TableCell>{booking.spot}</TableCell>
-                            <TableCell>{booking.time}</TableCell>
-                            <TableCell>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                booking.status === 'Active' ? 'bg-green-100 text-green-800' :
-                                booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                booking.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                                'bg-blue-100 text-blue-800'
-                              }`}>
-                                {booking.status}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="outline" size="sm">View</Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Zone Occupancy</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {occupancyData.zones.map(zone => (
-                        <div key={zone.name} className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>{zone.name} ({zone.type})</span>
-                            <span>{Math.round((zone.occupied / zone.total) * 100)}%</span>
-                          </div>
-                          <Progress value={(zone.occupied / zone.total) * 100} />
-                          <div className="text-xs text-muted-foreground">
-                            {zone.occupied} of {zone.total} spots ({zone.shadedSpots} shaded)
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <Button className="w-full bg-spoton-purple hover:bg-spoton-purple-dark">
-                      Add New User
-                    </Button>
-                    <Button className="w-full bg-spoton-purple hover:bg-spoton-purple-dark">
-                      Block Zone
-                    </Button>
-                    <Button className="w-full bg-spoton-purple hover:bg-spoton-purple-dark">
-                      Add Special Event
-                    </Button>
-                    <Button className="w-full bg-spoton-purple hover:bg-spoton-purple-dark">
-                      Export Reports
-                    </Button>
-                  </CardContent>
-                </Card>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Analytics Chart */}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Student Bookings by Hour (Last 24 Hours)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={hourlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hour" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="bookings" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            </TabsContent>
-            
-            {/* Other tabs would be implemented here - for brevity, only showing overview */}
-            <TabsContent value="occupancy" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Parking Occupancy Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Detailed parking occupancy view and management would be implemented here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="bookings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Booking Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Detailed booking management view would be implemented here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="users" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Detailed user management view would be implemented here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="analytics" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Detailed analytics view would be implemented here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Detailed settings view would be implemented here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </main>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Bookings Table */}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Recent Student Bookings ({recentBookings.length})</CardTitle>
+                <div className="flex gap-4">
+                  <Input
+                    placeholder="Search by zone or spot..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="Expired">Expired</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Zone</TableHead>
+                      <TableHead>Spot</TableHead>
+                      <TableHead>Student ID</TableHead>
+                      <TableHead>Start Time</TableHead>
+                      <TableHead>End Time</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBookings.map((booking) => (
+                      <TableRow key={booking.id}>
+                        <TableCell>{booking.zone_id || 'N/A'}</TableCell>
+                        <TableCell>{booking.spot_number || 'N/A'}</TableCell>
+                        <TableCell>{booking.user_id || 'N/A'}</TableCell>
+                        <TableCell>{formatDateTime(booking.start_time)}</TableCell>
+                        <TableCell>{formatDateTime(booking.end_time)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            booking.status === 'Active' ? 'bg-green-100 text-green-800' :
+                            booking.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
+                            booking.status === 'Expired' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {booking.status || 'Unknown'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+      <BottomNavigation />
     </div>
   );
 };
