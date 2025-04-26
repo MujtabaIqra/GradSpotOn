@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminOverview from './AdminOverview';
@@ -7,7 +6,7 @@ import AdminUserManagement from './AdminUserManagement';
 import AdminViolations from './AdminViolations';
 import AdminAnalytics from './AdminAnalytics';
 import AdminJ2Parking from './AdminJ2Parking';
-import { useAdminDashboard } from '@/hooks/useAdminDashboard';
+import { useAdminDashboard } from '@/hooks/admin/useAdminDashboard';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
