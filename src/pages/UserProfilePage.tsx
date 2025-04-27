@@ -13,16 +13,51 @@ import { useUserProfile } from '@/integrations/supabase/useUserProfile';
 const UserProfilePage = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | undefined>();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const { profile, loading, error } = useUserProfile(userId);
   
   // Get user ID on mount
   useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data?.user?.id);
+    const checkAuth = async () => {
+      try {
+        console.log('Checking authentication...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Session:', session);
+        console.log('Auth Error:', error);
+        
+        if (error) {
+          console.error('Auth Error:', error);
+          setIsAuthenticated(false);
+          navigate('/login');
+          return;
+        }
+
+        if (!session) {
+          console.log('No session found, redirecting to login');
+          setIsAuthenticated(false);
+          navigate('/login');
+          return;
+        }
+
+        setIsAuthenticated(true);
+        console.log('User ID:', session.user.id);
+        setUserId(session.user.id);
+      } catch (err) {
+        console.error('Error checking auth:', err);
+        setIsAuthenticated(false);
+        navigate('/login');
+      }
     };
-    checkUser();
-  }, []);
+
+    checkAuth();
+  }, [navigate]);
+
+  useEffect(() => {
+    console.log('Profile Data:', profile);
+    console.log('Loading State:', loading);
+    console.log('Error State:', error);
+    console.log('Is Authenticated:', isAuthenticated);
+  }, [profile, loading, error, isAuthenticated]);
 
   // Mock vehicle data (you can replace this with real data from your database)
   const vehicle = {
@@ -38,6 +73,10 @@ const UserProfilePage = () => {
     thisMonth: 8
   };
   
+  if (!isAuthenticated) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen pb-16">
@@ -73,13 +112,13 @@ const UserProfilePage = () => {
       <main className="p-4 max-w-lg mx-auto">
         <div className="flex items-center space-x-4 mb-6">
           <div className="h-16 w-16 rounded-full bg-spoton-purple flex items-center justify-center text-white text-xl font-bold">
-            {profile.full_name.split(' ').map(name => name[0]).join('')}
+            {profile.full_name?.split(' ').map(name => name[0]).join('') || '?'}
           </div>
           <div>
-            <h1 className="text-xl font-bold">{profile.full_name}</h1>
+            <h1 className="text-xl font-bold">{profile.full_name || 'No Name Set'}</h1>
             <div className="flex items-center">
               <p className="text-muted-foreground text-sm mr-2">{profile.student_id || 'No ID'}</p>
-              <Badge variant="outline" className="text-xs">{profile.user_type}</Badge>
+              <Badge variant="outline" className="text-xs">{profile.user_type || 'Unknown'}</Badge>
             </div>
           </div>
         </div>
@@ -98,7 +137,7 @@ const UserProfilePage = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Account Type</span>
-              <span>{profile.user_type}</span>
+              <span>{profile.user_type || 'Not set'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Bookings</span>
