@@ -1,12 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 
 interface Profile {
   id: string;
-  email: string;
   full_name: string;
   user_type: string;
+  student_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -15,6 +16,7 @@ const CheckProfile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -30,6 +32,9 @@ const CheckProfile = () => {
           setLoading(false);
           return;
         }
+
+        // Store email from auth session
+        setUserEmail(session.user.email);
 
         const { data, error: profileError } = await supabase
           .from('profiles')
@@ -86,7 +91,7 @@ const CheckProfile = () => {
     );
   }
 
-  const isAdminEmail = profile.email.startsWith('a.') && profile.email.endsWith('@ajmanuni.ac.ae');
+  const isAdminEmail = userEmail?.startsWith('a.') && userEmail?.endsWith('@ajmanuni.ac.ae');
   const isAdmin = profile.user_type === 'Admin';
 
   return (
@@ -98,7 +103,7 @@ const CheckProfile = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <p><strong>ID:</strong> {profile.id}</p>
-            <p><strong>Email:</strong> {profile.email}</p>
+            <p><strong>Email:</strong> {userEmail}</p>
             <p><strong>Full Name:</strong> {profile.full_name}</p>
             <p><strong>User Type:</strong> {profile.user_type}</p>
             <p><strong>Created At:</strong> {new Date(profile.created_at).toLocaleString()}</p>
@@ -116,4 +121,4 @@ const CheckProfile = () => {
   );
 };
 
-export default CheckProfile; 
+export default CheckProfile;

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 async function checkProfile() {
@@ -30,7 +31,7 @@ async function checkProfile() {
     console.log('Current User Profile:');
     console.log('-------------------');
     console.log('ID:', profile.id);
-    console.log('Email:', profile.email);
+    console.log('Email:', session.user.email);
     console.log('Full Name:', profile.full_name);
     console.log('User Type:', profile.user_type);
     console.log('Created At:', profile.created_at);
@@ -38,7 +39,8 @@ async function checkProfile() {
     console.log('-------------------');
 
     // Check if email follows admin format
-    const isAdminEmail = profile.email.startsWith('a.') && profile.email.endsWith('@ajmanuni.ac.ae');
+    const isAdminEmail = session.user.email.startsWith('a.') && 
+                         session.user.email.endsWith('@ajmanuni.ac.ae');
     console.log('Admin Email Format:', isAdminEmail ? '✅ Valid' : '❌ Invalid');
     console.log('Admin Status:', profile.user_type === 'Admin' ? '✅ Admin' : '❌ Not Admin');
 
@@ -47,4 +49,4 @@ async function checkProfile() {
   }
 }
 
-checkProfile(); 
+checkProfile();

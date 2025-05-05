@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, CreditCard, LogOut, Settings, Shield } from 'lucide-react';
+import { Calendar, CreditCard, LogOut, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,27 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 export function ProfileActions() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) return;
-        
-        // Check if email matches admin pattern (starts with a.)
-        const isAdminEmail = session.user.email?.startsWith('a.') && 
-                           session.user.email?.endsWith('@ajmanuni.ac.ae');
-        
-        setIsAdmin(!!isAdminEmail);
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-      }
-    };
-    
-    checkAdminStatus();
-  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -62,12 +42,6 @@ export function ProfileActions() {
           <CreditCard className="mr-2 h-4 w-4" />
           Payment History
         </Button>
-        {isAdmin && (
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin')}>
-            <Shield className="mr-2 h-4 w-4" />
-            Admin Dashboard
-          </Button>
-        )}
       </div>
       <Separator />
       <div className="space-y-2">

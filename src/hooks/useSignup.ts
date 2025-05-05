@@ -48,45 +48,6 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
   const isValidEmail = (email: string) => {
     // For testing purposes, accept all emails
     return true;
-    
-    /* Original validation code - commented out for easier testing
-    const emailDomain = "@ajmanuni.ac.ae";
-    const normalizedEmail = email.trim().toLowerCase();
-    
-    if (!normalizedEmail.endsWith(emailDomain)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please use a valid Ajman University email address.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    // Check if it's an admin email (starts with 'a.')
-    const isAdminEmail = normalizedEmail.startsWith("a.");
-    const userType = formData.userType;
-
-    // Validate that admin emails match admin user type and vice versa
-    if (isAdminEmail && userType !== "admin") {
-      toast({
-        title: "Invalid User Type",
-        description: "Admin emails must select 'Admin' as user type.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!isAdminEmail && userType === "admin") {
-      toast({
-        title: "Invalid User Type",
-        description: "Non-admin emails cannot select 'Admin' as user type.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-    */
   };
 
   const handleSignup = async (e: React.FormEvent) => {

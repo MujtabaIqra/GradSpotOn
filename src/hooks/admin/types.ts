@@ -16,7 +16,7 @@ export interface ParkingZone {
 
 export interface User {
   id: string;
-  email: string;
+  email: string; // Added email field
   full_name: string;
   user_type: string;
   created_at: string;
@@ -25,10 +25,10 @@ export interface User {
 export interface Booking {
   id: string;
   user_id: string;
-  zone_id: number;
-  spot_number: number;
+  zone_id: number; // Added to match interface requirements
+  spot_number: number; // Added to match interface requirements
   start_time: string;
-  end_time: string;
+  end_time: string; // Added to match interface requirements
   status: 'Active' | 'Completed' | 'Cancelled' | 'Expired';
   user?: {
     full_name: string;
