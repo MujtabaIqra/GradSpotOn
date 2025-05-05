@@ -6,65 +6,44 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       bookings: {
         Row: {
-          id: string
-          user_id: string
-          zone_id: number
-          spot_number: number
-          start_time: string
-          end_time: string
-          status: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
-          entry_time: string | null
-          exit_time: string | null
+          building: Database["public"]["Enums"]["building_code"]
           created_at: string
+          duration_minutes: number
+          id: string
+          slot: number
+          start_time: string
+          status: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          zone_id: number
-          spot_number: number
-          start_time: string
-          end_time: string
-          status?: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
-          entry_time?: string | null
-          exit_time?: string | null
+          building: Database["public"]["Enums"]["building_code"]
           created_at?: string
+          duration_minutes: number
+          id?: string
+          slot: number
+          start_time: string
+          status?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          zone_id?: number
-          spot_number?: number
-          start_time?: string
-          end_time?: string
-          status?: 'Active' | 'Completed' | 'Cancelled' | 'Expired'
-          entry_time?: string | null
-          exit_time?: string | null
+          building?: Database["public"]["Enums"]["building_code"]
           created_at?: string
+          duration_minutes?: number
+          id?: string
+          slot?: number
+          start_time?: string
+          status?: string | null
           updated_at?: string
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "bookings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_zone_id_fkey"
-            columns: ["zone_id"]
-            isOneToOne: false
-            referencedRelation: "parking_zones"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {

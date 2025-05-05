@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +50,11 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
     const normalizedEmail = email.trim().toLowerCase();
     
     if (!normalizedEmail.endsWith(emailDomain)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please use a valid Ajman University email address.",
+        variant: "destructive",
+      });
       return false;
     }
 
@@ -80,13 +86,9 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Signup form submitted with data:", formData);
 
     if (!isValidEmail(formData.email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please use a valid Ajman University email address with the correct format.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -111,6 +113,13 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
     setLoading(true);
 
     try {
+      console.log("About to sign up with:", {
+        email: formData.email,
+        password: formData.password,
+        userType: formData.userType,
+        dbUserType: USER_TYPE_MAP[formData.userType as keyof typeof USER_TYPE_MAP]
+      });
+      
       // Map the form user type to the database enum value
       const dbUserType = USER_TYPE_MAP[formData.userType as keyof typeof USER_TYPE_MAP];
       
@@ -126,6 +135,8 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
         }
       });
 
+      console.log("Sign up response:", { data, error });
+
       if (error) throw error;
 
       toast({
@@ -135,11 +146,14 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
       
       // Navigate to dashboard if auto sign-in worked, else go to login
       if (data.user) {
+        console.log("User was created and is signed in:", data.user);
         navigate(dbUserType === 'Admin' ? '/admin' : '/dashboard');
       } else {
+        console.log("User was created but needs to confirm email before signing in");
         navigate('/login');
       }
     } catch (error: any) {
+      console.error("Registration error:", error);
       toast({
         title: "Registration Failed",
         description: error.message || "There was a problem creating your account.",

@@ -63,6 +63,11 @@ const SignupPage = () => {
                   onChange={handleChange}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.userType === 'admin' 
+                    ? "Admin emails must start with 'a.'" 
+                    : "Use your Ajman University email"}
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -79,6 +84,7 @@ const SignupPage = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="faculty">Faculty Member</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="security">Security</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -105,6 +111,9 @@ const SignupPage = () => {
                   onChange={handleChange}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Password must be at least 6 characters
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -129,12 +138,8 @@ const SignupPage = () => {
               <p className="text-center text-sm">
                 Already have an account?{' '}
                 <a 
-                  href="#" 
+                  href="/login" 
                   className="text-spoton-purple hover:underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.assign('/login');
-                  }}
                 >
                   Sign in
                 </a>
