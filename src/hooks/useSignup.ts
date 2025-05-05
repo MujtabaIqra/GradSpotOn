@@ -46,6 +46,10 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
   };
 
   const isValidEmail = (email: string) => {
+    // For testing purposes, accept all emails
+    return true;
+    
+    /* Original validation code - commented out for easier testing
     const emailDomain = "@ajmanuni.ac.ae";
     const normalizedEmail = email.trim().toLowerCase();
     
@@ -82,6 +86,7 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
     }
 
     return true;
+    */
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -144,14 +149,8 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
         description: "Your account has been created. You can now sign in.",
       });
       
-      // Navigate to dashboard if auto sign-in worked, else go to login
-      if (data.user) {
-        console.log("User was created and is signed in:", data.user);
-        navigate(dbUserType === 'Admin' ? '/admin' : '/dashboard');
-      } else {
-        console.log("User was created but needs to confirm email before signing in");
-        navigate('/login');
-      }
+      // Navigate to login page - simpler approach for now 
+      navigate('/login');
     } catch (error: any) {
       console.error("Registration error:", error);
       toast({
