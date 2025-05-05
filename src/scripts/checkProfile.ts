@@ -38,12 +38,6 @@ async function checkProfile() {
     console.log('Updated At:', profile.updated_at);
     console.log('-------------------');
 
-    // Check if email follows admin format
-    const isAdminEmail = session.user.email.startsWith('a.') && 
-                         session.user.email.endsWith('@ajmanuni.ac.ae');
-    console.log('Admin Email Format:', isAdminEmail ? '✅ Valid' : '❌ Invalid');
-    console.log('Admin Status:', profile.user_type === 'Admin' ? '✅ Admin' : '❌ Not Admin');
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }
