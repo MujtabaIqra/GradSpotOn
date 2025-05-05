@@ -82,7 +82,7 @@ const SignupPage = () => {
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="faculty">Faculty Member</SelectItem>
+                    <SelectItem value="faculty">Faculty</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
                     <SelectItem value="security">Security</SelectItem>
                   </SelectContent>

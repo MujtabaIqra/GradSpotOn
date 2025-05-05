@@ -13,11 +13,11 @@ interface SignupFormData {
   studentId: string;
 }
 
-// Map form values to database enum values
+// Map form values to database enum values that match the check constraint
 const USER_TYPE_MAP = {
   student: 'Student',
   admin: 'Admin',
-  faculty: 'Staff',
+  faculty: 'Faculty',
   staff: 'Staff',
   security: 'Security'
 } as const;
