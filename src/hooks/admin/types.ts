@@ -9,6 +9,7 @@ export interface ParkingZone {
   status: 'Open' | 'Closed' | 'Maintenance' | 'Reserved';
   status_reason?: string;
   status_until?: string;
+  occupancy_rate: number;
   created_at: string;
   updated_at: string;
 }

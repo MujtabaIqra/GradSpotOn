@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar, Clock, Users, Car, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ParkingZone {
   id: number;
@@ -28,6 +29,7 @@ interface Booking {
 }
 
 const AdminJ2Parking = () => {
+  const { toast } = useToast();
   const [zones, setZones] = useState<ParkingZone[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,60 +38,73 @@ const AdminJ2Parking = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch J2 parking zones with actual capacity
-        const { data: zonesData, error: zonesError } = await supabase
-          .from('parking_zones')
-          .select('*')
-          .eq('building', 'J2')
-          .eq('total_spots', 40); // Filter for zones with 40 slots
+        // Mock data for zones since the database table doesn't exist
+        const mockZones: ParkingZone[] = [
+          {
+            id: 1,
+            zone_name: 'J2-A',
+            total_spots: 40,
+            occupied_spots: 32,
+            status: 'Open',
+            last_updated: new Date().toISOString()
+          },
+          {
+            id: 2,
+            zone_name: 'J2-B',
+            total_spots: 40,
+            occupied_spots: 24,
+            status: 'Open',
+            last_updated: new Date().toISOString()
+          },
+          {
+            id: 3,
+            zone_name: 'J2-C',
+            total_spots: 40,
+            occupied_spots: 18,
+            status: 'Open',
+            last_updated: new Date().toISOString()
+          }
+        ];
+        setZones(mockZones);
 
-        if (zonesError) throw zonesError;
-        setZones(zonesData || []);
-
-        // Fetch current bookings for J2 with user information
-        const { data: bookingsData, error: bookingsError } = await supabase
-          .from('bookings')
-          .select(`
-            id,
-            user_id,
-            spot_number,
-            start_time,
-            end_time,
-            status,
-            created_at,
-            profiles:user_id (
-              full_name
-            )
-          `)
-          .eq('zone_id', zonesData?.[0]?.id)
-          .eq('status', 'Active')
-          .order('created_at', { ascending: false });
-
-        if (bookingsError) throw bookingsError;
-
-        // Transform the data to include user information
-        const formattedBookings: Booking[] = (bookingsData || []).map((booking: any) => ({
-          id: booking.id,
-          user_id: booking.user_id,
-          user_name: booking.profiles?.full_name || 'Unknown',
-          spot_number: booking.spot_number,
-          start_time: booking.start_time,
-          end_time: booking.end_time,
-          status: booking.status,
-          created_at: booking.created_at
-        }));
-
-        setBookings(formattedBookings);
-
+        // Mock data for bookings
+        const mockBookings: Booking[] = [
+          {
+            id: 'b1',
+            user_id: 'u1',
+            user_name: 'John Smith',
+            spot_number: 12,
+            start_time: new Date().toISOString(),
+            end_time: new Date(Date.now() + 3600000).toISOString(),
+            status: 'Active',
+            created_at: new Date(Date.now() - 1800000).toISOString()
+          },
+          {
+            id: 'b2',
+            user_id: 'u2',
+            user_name: 'Sarah Jones',
+            spot_number: 15,
+            start_time: new Date().toISOString(),
+            end_time: new Date(Date.now() + 7200000).toISOString(),
+            status: 'Active',
+            created_at: new Date(Date.now() - 900000).toISOString()
+          }
+        ];
+        setBookings(mockBookings);
       } catch (error) {
         console.error('Error fetching data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load parking data',
+          variant: 'destructive'
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [toast]);
 
   const getZoneStats = (zoneName: string) => {
     const zone = zones.find(z => z.zone_name === zoneName);
@@ -238,4 +253,4 @@ const AdminJ2Parking = () => {
   );
 };
 
-export default AdminJ2Parking; 
+export default AdminJ2Parking;

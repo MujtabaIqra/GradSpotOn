@@ -12,18 +12,25 @@ import {
   AlertTriangle, Users, Car, AlertCircle, 
   TrendingUp 
 } from 'lucide-react';
-import { useAdminDashboard } from '@/hooks/useAdminDashboard';
+import { ParkingZone, User, Booking, Violation, Analytics } from '@/hooks/admin/types';
 
-const AdminOverview = () => {
-  const {
-    parkingZones,
-    users,
-    bookings,
-    violations,
-    analytics,
-    loading
-  } = useAdminDashboard();
+interface AdminOverviewProps {
+  parkingZones: ParkingZone[];
+  users: User[];
+  bookings: Booking[];
+  violations: Violation[];
+  analytics: Analytics | null;
+  loading: boolean;
+}
 
+const AdminOverview: React.FC<AdminOverviewProps> = ({
+  parkingZones,
+  users,
+  bookings,
+  violations,
+  analytics,
+  loading
+}) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -34,14 +41,13 @@ const AdminOverview = () => {
 
   // Calculate total occupancy
   const totalSpots = parkingZones.reduce((acc, zone) => acc + zone.total_spots, 0);
-  const occupiedSpots = parkingZones.reduce((acc, zone) => {
-    const occupancyRate = zone.occupancy_rate || 0;
-    return acc + Math.round((occupancyRate / 100) * zone.total_spots);
-  }, 0);
+  const occupiedSpots = parkingZones.reduce((acc, zone) => acc + zone.occupied_spots, 0);
   const totalOccupancyRate = (occupiedSpots / totalSpots) * 100;
 
   // Get high occupancy zones
-  const highOccupancyZones = parkingZones.filter(zone => zone.occupancy_rate >= 80);
+  const highOccupancyZones = parkingZones.filter(zone => 
+    (zone.occupied_spots / zone.total_spots) * 100 >= 80
+  );
 
   return (
     <div className="space-y-6">
@@ -54,7 +60,7 @@ const AdminOverview = () => {
             The following zones are at or above 80% capacity:
             {highOccupancyZones.map(zone => (
               <span key={zone.id} className="block">
-                • {zone.zone_name}: {Math.round(zone.occupancy_rate)}% occupied
+                • {zone.zone_name}: {Math.round((zone.occupied_spots / zone.total_spots) * 100)}% occupied
               </span>
             ))}
           </AlertDescription>
@@ -82,8 +88,7 @@ const AdminOverview = () => {
             <div className="text-2xl font-bold">{Math.round(totalOccupancyRate)}%</div>
             <Progress 
               value={totalOccupancyRate} 
-              className="mt-2"
-              indicatorClassName={totalOccupancyRate >= 80 ? 'bg-red-500' : undefined}
+              className={`mt-2 ${totalOccupancyRate >= 80 ? 'bg-red-500' : ''}`}
             />
             <p className="text-xs text-muted-foreground mt-2">
               {occupiedSpots} of {totalSpots} spots occupied
@@ -180,28 +185,30 @@ const AdminOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {parkingZones.map(zone => (
-              <div key={zone.id} className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>{zone.zone_name}</span>
-                  <span>{Math.round(zone.occupancy_rate || 0)}%</span>
+            {parkingZones.map(zone => {
+              const occupancyRate = (zone.occupied_spots / zone.total_spots) * 100;
+              return (
+                <div key={zone.id} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>{zone.zone_name}</span>
+                    <span>{Math.round(occupancyRate)}%</span>
+                  </div>
+                  <Progress 
+                    value={occupancyRate} 
+                    className={`h-2 ${occupancyRate >= 80 ? 'bg-red-500' : ''}`}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>
+                      {zone.occupied_spots} of {zone.total_spots} spots
+                    </span>
+                    <span>
+                      {zone.status}
+                      {zone.status_reason && ` - ${zone.status_reason}`}
+                    </span>
+                  </div>
                 </div>
-                <Progress 
-                  value={zone.occupancy_rate} 
-                  className="h-2"
-                  indicatorClassName={zone.occupancy_rate >= 80 ? 'bg-red-500' : undefined}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
-                    {Math.round(((zone.occupancy_rate || 0) / 100) * zone.total_spots)} of {zone.total_spots} spots
-                  </span>
-                  <span>
-                    {zone.status}
-                    {zone.status_reason && ` - ${zone.status_reason}`}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

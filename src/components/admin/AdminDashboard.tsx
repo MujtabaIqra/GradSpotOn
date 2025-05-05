@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Tabs } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminOverview from './AdminOverview';
 import AdminParkingManagement from './AdminParkingManagement';
 import AdminUserManagement from './AdminUserManagement';
@@ -37,7 +37,14 @@ const AdminDashboard = () => {
             <DashboardMobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <TabsContent value="overview">
-              <AdminOverview />
+              <AdminOverview 
+                parkingZones={parkingZones}
+                users={users}
+                bookings={bookings}
+                violations={violations}
+                analytics={analytics}
+                loading={false}
+              />
             </TabsContent>
 
             <TabsContent value="j2-parking">
