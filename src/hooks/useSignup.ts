@@ -13,13 +13,13 @@ interface SignupFormData {
   studentId: string;
 }
 
-// Map form values to database enum values that match the check constraint
+// Fix: Update to match the exact values expected by the profiles_user_type_check constraint
 const USER_TYPE_MAP = {
-  student: 'Student',
-  admin: 'Admin',
-  faculty: 'Faculty',
-  staff: 'Staff',
-  security: 'Security'
+  student: 'student',
+  admin: 'admin',
+  faculty: 'faculty',
+  staff: 'staff', 
+  security: 'security'
 } as const;
 
 export function useSignup(initialData?: Partial<SignupFormData>) {
