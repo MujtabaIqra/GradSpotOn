@@ -97,7 +97,7 @@ const SignupPage = () => {
                     placeholder="Your student ID number"
                     value={formData.studentId}
                     onChange={handleChange}
-                    required
+                    required={formData.userType === 'student'}
                   />
                 </div>
               )}
@@ -110,6 +110,7 @@ const SignupPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  minLength={6}
                 />
                 <p className="text-xs text-muted-foreground">
                   Password must be at least 6 characters

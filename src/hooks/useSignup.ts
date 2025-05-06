@@ -79,15 +79,17 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
     setLoading(true);
 
     try {
-      console.log("About to sign up with:", {
-        email: formData.email,
-        password: formData.password,
-        userType: formData.userType,
-        dbUserType: USER_TYPE_MAP[formData.userType as keyof typeof USER_TYPE_MAP]
-      });
-      
       // Map the form user type to the database enum value
       const dbUserType = USER_TYPE_MAP[formData.userType as keyof typeof USER_TYPE_MAP];
+      
+      console.log("About to sign up with:", {
+        email: formData.email,
+        password: "******",
+        userType: formData.userType,
+        dbUserType: dbUserType,
+        name: formData.name,
+        studentId: formData.userType === 'student' ? formData.studentId : null
+      });
       
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -96,7 +98,7 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
           data: {
             full_name: formData.name,
             user_type: dbUserType,
-            student_id: formData.studentId,
+            student_id: formData.userType === 'student' ? formData.studentId : null,
           }
         }
       });
@@ -110,7 +112,7 @@ export function useSignup(initialData?: Partial<SignupFormData>) {
         description: "Your account has been created. You can now sign in.",
       });
       
-      // Navigate to login page - simpler approach for now 
+      // Navigate to login page
       navigate('/login');
     } catch (error: any) {
       console.error("Registration error:", error);
