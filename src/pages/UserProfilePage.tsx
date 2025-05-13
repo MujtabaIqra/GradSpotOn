@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -16,77 +17,84 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  // Add a key to force re-render when profile updates
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true);
+  const fetchUserData = async () => {
+    setLoading(true);
+    
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Error fetching session:", sessionError);
-          toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "Unable to verify your login status. Please log in again."
-          });
-          navigate('/login');
-          return;
-        }
-        
-        if (!session) {
-          navigate('/login');
-          return;
-        }
-        
-        setUser(session.user);
-        
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          toast({
-            variant: "destructive",
-            title: "Profile Error",
-            description: "Unable to load your profile data."
-          });
-        }
-        
-        if (profileData) {
-          setProfile(profileData);
-        } else {
-          console.log("No profile found for user");
-          const emailName = session.user.email?.split('@')[0] || '';
-          const nameParts = emailName.split('.');
-          const formattedName = nameParts
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(' ');
-          
-          setProfile({
-            full_name: formattedName,
-            user_type: 'Student',
-            student_id: null
-          });
-        }
-      } catch (error) {
-        console.error("Unexpected error:", error);
+      if (sessionError) {
+        console.error("Error fetching session:", sessionError);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Something went wrong. Please try again later."
+          title: "Authentication Error",
+          description: "Unable to verify your login status. Please log in again."
         });
-      } finally {
-        setLoading(false);
+        navigate('/login');
+        return;
       }
-    };
-    
+      
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+      
+      setUser(session.user);
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        toast({
+          variant: "destructive",
+          title: "Profile Error",
+          description: "Unable to load your profile data."
+        });
+      }
+      
+      if (profileData) {
+        setProfile(profileData);
+      } else {
+        console.log("No profile found for user");
+        const emailName = session.user.email?.split('@')[0] || '';
+        const nameParts = emailName.split('.');
+        const formattedName = nameParts
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' ');
+        
+        setProfile({
+          full_name: formattedName,
+          user_type: 'Student',
+          student_id: null
+        });
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Something went wrong. Please try again later."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchUserData();
-  }, [navigate, toast]);
+  }, [navigate, toast, refreshKey]);
+  
+  // Function to refresh profile data
+  const refreshProfile = () => {
+    setRefreshKey(prevKey => prevKey + 1);
+  };
   
   if (loading) {
     return (

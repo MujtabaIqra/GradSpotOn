@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { User, Edit, Check, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,14 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
     fullName: fullName || '',
     userType: userType || 'Student',
   });
+  
+  // Update local state when props change
+  useEffect(() => {
+    setFormData({
+      fullName: fullName || '',
+      userType: userType || 'Student',
+    });
+  }, [fullName, userType]);
   
   const handleEdit = () => {
     setIsEditing(true);
@@ -70,6 +78,9 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
         title: "Profile Updated",
         description: "Your account information has been saved successfully.",
       });
+
+      // Force page reload to reflect the changes
+      window.location.reload();
       
       setIsEditing(false);
     } catch (error) {
