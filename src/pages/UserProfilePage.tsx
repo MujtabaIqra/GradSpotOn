@@ -17,8 +17,6 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  // Add a key to force re-render when profile updates
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchUserData = async () => {
     setLoading(true);
@@ -89,12 +87,7 @@ const UserProfilePage = () => {
   
   useEffect(() => {
     fetchUserData();
-  }, [navigate, toast, refreshKey]);
-  
-  // Function to refresh profile data
-  const refreshProfile = () => {
-    setRefreshKey(prevKey => prevKey + 1);
-  };
+  }, [navigate, toast]);
   
   if (loading) {
     return (
