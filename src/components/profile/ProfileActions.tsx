@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, CreditCard, LogOut, Settings } from 'lucide-react';
+import { Calendar, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,17 +38,9 @@ export function ProfileActions() {
           <Calendar className="mr-2 h-4 w-4" />
           My Bookings
         </Button>
-        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/payments')}>
-          <CreditCard className="mr-2 h-4 w-4" />
-          Payment History
-        </Button>
       </div>
       <Separator />
       <div className="space-y-2">
-        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/settings')}>
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
-        </Button>
         <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-50" onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
