@@ -22,7 +22,6 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
   
   const [formData, setFormData] = useState({
     fullName: fullName || '',
-    studentId: studentId || '',
     userType: userType || 'Student',
   });
   
@@ -34,7 +33,6 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
     // Reset form data to original values
     setFormData({
       fullName: fullName || '',
-      studentId: studentId || '',
       userType: userType || 'Student',
     });
     setIsEditing(false);
@@ -59,8 +57,8 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
         .from('profiles')
         .update({
           full_name: formData.fullName,
-          student_id: formData.studentId || null,
           user_type: formData.userType,
+          student_id: studentId // Keep the existing studentId
         })
         .eq('id', userId);
         
@@ -115,15 +113,6 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium">ID Number</label>
-              <Input 
-                value={formData.studentId} 
-                onChange={(e) => setFormData({...formData, studentId: e.target.value})}
-                placeholder="Enter your student ID"
-              />
-            </div>
-            
-            <div className="space-y-2">
               <label className="text-sm font-medium">Account Type</label>
               <Select 
                 value={formData.userType}
@@ -146,10 +135,6 @@ export function EditableAccountInfo({ userId, studentId, userType, fullName }: E
             <div className="flex justify-between">
               <span className="text-muted-foreground">Full Name</span>
               <span>{fullName || 'Not set'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">ID Number</span>
-              <span>{studentId || 'Not set'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Account Type</span>

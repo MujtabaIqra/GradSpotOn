@@ -8,9 +8,10 @@ interface ProfileHeaderProps {
   email?: string;
   userType?: string;
   initials: string;
+  studentId?: string | null;
 }
 
-export function ProfileHeader({ displayName, email, userType, initials }: ProfileHeaderProps) {
+export function ProfileHeader({ displayName, email, userType, initials, studentId }: ProfileHeaderProps) {
   return (
     <div className="flex items-center space-x-4 mb-6">
       <Avatar className="h-16 w-16 bg-spoton-purple">
@@ -19,7 +20,10 @@ export function ProfileHeader({ displayName, email, userType, initials }: Profil
         </AvatarFallback>
       </Avatar>
       <div>
-        <h1 className="text-xl font-bold">{displayName}</h1>
+        <h1 className="text-xl font-bold">
+          {displayName}
+          {studentId && <span className="text-sm font-normal ml-2 text-muted-foreground">#{studentId}</span>}
+        </h1>
         <div className="flex items-center">
           <p className="text-muted-foreground text-sm mr-2">{email}</p>
           <Badge variant="outline" className="text-xs">{userType || 'Student'}</Badge>

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -118,6 +117,7 @@ const UserProfilePage = () => {
           email={user?.email}
           userType={profile?.user_type}
           initials={initials}
+          studentId={profile?.student_id}
         />
         
         <EditableAccountInfo
